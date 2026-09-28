@@ -130,9 +130,15 @@
   <label class="consent"><input id="kiEnabled" type="checkbox" checked><span>KI einschalten</span></label>
   <label for="kiKey">Gemini-Schlüssel <small>(kostenlos, nur auf diesem Gerät)</small></label>
   <input id="kiKey" type="password" autocomplete="off" spellcheck="false" placeholder="Schlüssel hier einfügen">
-  <label for="kiModel">Modell <small>(nur ändern, wenn nötig)</small></label>
-  <input id="kiModel" type="text" autocomplete="off" spellcheck="false" maxlength="80" list="kiModels" placeholder="gemini-2.5-flash">
-  <datalist id="kiModels"><option value="gemini-2.5-flash"><option value="gemini-3.8-flash"><option value="gemini-3.5-flash-lite"></datalist>
+  <p class="hint">Die App fragt zuerst das klügste kostenlose Modell. Ist dessen Tageslimit voll, wechselt sie automatisch zum nächsten.</p>
+  <label for="kiModel">1. Modell <small>(klügstes – nur ändern, wenn nötig)</small></label>
+  <input id="kiModel" type="text" autocomplete="off" spellcheck="false" maxlength="80" list="kiModels" placeholder="gemini-3.8-flash">
+  <label for="kiFallback">2. Modell <small>(Ersatz, auch für Google-Suche)</small></label>
+  <input id="kiFallback" type="text" autocomplete="off" spellcheck="false" maxlength="80" list="kiModels" placeholder="gemini-2.5-flash">
+  <label for="kiLite">3. Modell <small>(schnell, großes Limit)</small></label>
+  <input id="kiLite" type="text" autocomplete="off" spellcheck="false" maxlength="80" list="kiModels" placeholder="gemini-3.5-flash-lite">
+  <datalist id="kiModels"><option value="gemini-3.8-flash"><option value="gemini-3.7-flash"><option value="gemini-3.6-flash"><option value="gemini-2.5-flash"><option value="gemini-3.5-flash-lite"><option value="gemini-3.1-pro-preview"></datalist>
+  <button id="kiModelsReset" type="button" class="link">Modelle auf Standard zurücksetzen</button>
   <div class="row">
     <button id="saveKi" type="button" class="mid">KI speichern</button>
     <button id="testKi" type="button" class="mid secondary">Schlüssel testen</button>
@@ -153,7 +159,7 @@
       Ist das Tageslimit erreicht, sagt die App Bescheid.</p>
   </details>
   </div>
-  <p class="version">Bürger-Anliegen Bad Pyrmont · Version <span id="ver">2.1.0</span><br>Kostenlos · ohne Werbung · ohne Tracking</p>
+  <p class="version">Bürger-Anliegen Bad Pyrmont · Version <span id="ver">2.2.0</span><br>Kostenlos · ohne Werbung · ohne Tracking</p>
 </section>
 
 <!-- ================= Helfer: Übersicht ================= -->
@@ -343,14 +349,19 @@
       <textarea id="kiInput" rows="4"></textarea>
     </div>
     <label class="consent" id="kiGroundingBox"><input id="kiGrounding" type="checkbox"><span>🔎 Mit Google-Suche (aktuelle Fakten und Quellen)</span></label>
-    <p class="hint">Wenn die Suche nicht klappt, antwortet die KI ohne Suche.</p>
+    <p class="hint">Die Google-Suche ist kostenlos nur bei manchen Modellen. Die App wählt dafür automatisch ein passendes. Klappt keine Suche, antwortet die KI ohne Suche (mit Hinweis).</p>
     <p id="kiInputErr" class="error" role="alert" hidden>Bitte zuerst etwas eintragen.</p>
     <button id="kiRun" type="button" class="big">✨ KI fragen</button>
-    <p id="kiBusy" class="info" role="status" hidden>Die KI arbeitet … bitte kurz warten.</p>
+    <div id="kiBusy" class="info busy" role="status" aria-live="polite" hidden>
+      <span class="spinner" aria-hidden="true"></span>
+      <strong>KI denkt gründlich nach …</strong><br>
+      <span id="kiBusyDetail">Das kann bis zu 1–2 Minuten dauern. Sie können die App weiter benutzen.</span>
+    </div>
     <p id="kiError" class="error" role="alert" hidden></p>
   </div>
   <div id="kiResultBox" hidden>
     <h2>Ergebnis <small>(Entwurf – bitte prüfen)</small></h2>
+    <p id="kiModelUsed" class="hint model-used" hidden></p>
     <p id="kiNote" class="warn" hidden></p>
     <textarea id="kiResult" rows="12" aria-label="Ergebnis der KI"></textarea>
     <div id="kiSourcesBox" hidden>

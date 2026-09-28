@@ -1,9 +1,9 @@
-/* Bürger-Anliegen Bad Pyrmont 2.1.0 – reine Logik (ohne DOM), auch in Node testbar.
+/* Bürger-Anliegen Bad Pyrmont 2.2.0 – reine Logik (ohne DOM), auch in Node testbar.
    Gleiche Regeln wie AnliegenLogic.java (Android). Keine Netzwerk-Zugriffe. */
 (function (root) {
   'use strict';
 
-  var VERSION = '2.1.0';
+  var VERSION = '2.2.0';
   var HEADER = 'Anliegen für Hajo Bönke (SPD Bad Pyrmont)';
   var THEMEN = ['Straße & Wege', 'Verkehr & Parken', 'Schule & Kita', 'Umwelt & Grün', 'Sauberkeit',
     'Soziales & Senioren', 'Jugend & Sport', 'Wirtschaft & Tourismus', 'Sonstiges'];
@@ -508,17 +508,25 @@
   }
 
   // ------------------------------------------------------------ KI: Prompts
-  var DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
-  var FALLBACK_GEMINI_MODEL = 'gemini-3.5-flash-lite';
+  var DEFAULT_GEMINI_MODEL = 'gemini-3.8-flash';
+  var FALLBACK_GEMINI_MODEL = 'gemini-2.5-flash';
+  var LITE_GEMINI_MODEL = 'gemini-3.5-flash-lite';
+  var GEMINI_MAX_OUTPUT_TOKENS = 32768; // inkl. Denk-Tokens (Obergrenze der Modelle: 65536)
+  var GEMINI_ANSWER_TOKENS = 8192;      // Platz für die eigentliche Antwort nach dem Nachdenken
+  var GEMINI_THINKING_BUDGET_25 = 24576;
+  var GEMINI_TIMEOUT_MS = 240000; // 4 Minuten: gründliches Nachdenken braucht Zeit
   var GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models/';
   var KI_TASKS = ['zusammenfassen', 'antwort', 'text', 'recherche'];
   var TEXT_ARTEN = ['Social-Media-Post', 'Flyer-Text', 'Pressemitteilung', 'Rede-Stichpunkte'];
-  var SYSTEM_KI = 'Du hilfst einem ehrenamtlichen Helfer von Hajo Bönke (SPD Bad Pyrmont) bei der Büroarbeit. ' +
-    'Schreibe auf Deutsch, sachlich, neutral und in einfacher, klarer Sprache mit kurzen Sätzen. ' +
-    'Erfinde keine Fakten, Zahlen, Zitate, Namen, Termine oder Versprechen. Wenn etwas fehlt, schreibe einen Platzhalter in eckigen Klammern, z. B. [Datum]. ' +
-    'Keine Angriffe auf andere Parteien oder Personen, keine Übertreibungen. ' +
-    'Platzhalter wie [Name], [Telefon], [E-Mail], [Hausnummer] und [Link] sind absichtlich anonymisiert: nicht ersetzen und nicht raten. ' +
-    'Keine Markdown-Tabellen. Einfache Aufzählungen mit "-" sind erlaubt.';
+  var SYSTEM_KI = 'Du bist erfahrener Büroleiter und Pressereferent für Hajo Bönke, ' +
+    'SPD-Kommunalpolitiker in Bad Pyrmont (Niedersachsen). ' +
+    'Schreibe auf Deutsch, klar, respektvoll und in einfacher Sprache mit kurzen Sätzen. ' +
+    'Erfinde keine Fakten: nur Fakten aus der Anfrage oder aus der Suche, keine erfundenen Zahlen, Namen, Termine, Zitate oder Versprechen. ' +
+    'Unsicherheiten klar markieren (z. B. „unsicher:“ oder Platzhalter wie [Datum]). ' +
+    'Platzhalter [Name], [Telefon], [E-Mail], [Hausnummer], [Link] sind anonymisiert – nicht ersetzen und nicht raten. ' +
+    'Keine Angriffe auf Personen oder Parteien, keine Übertreibungen. ' +
+    'Wo sinnvoll: konkrete nächste Schritte nennen. ' +
+    'Keine Markdown-Tabellen. Aufzählungen mit „-“ sind erlaubt.';
 
   /** Zeigt nie den ganzen Schlüssel: nur •••• + letzte 4 Zeichen. */
   function maskApiKey(k) {
@@ -553,43 +561,93 @@
     if (task === 'zusammenfassen') {
       var offen = filterAnliegen(data.anliegen.filter(function (a) { return a.status !== 'Erledigt'; }), {});
       anon = anliegenForKi(offen);
-      user = 'Hier sind ' + offen.length + ' offene Bürger-Anliegen aus Bad Pyrmont.\n' +
-        'Aufgabe:\n1. Fasse sie kurz zusammen (3 bis 5 Sätze).\n2. Ordne sie nach Dringlichkeit: zuerst was sofort wichtig ist.\n' +
-        '3. Gruppiere nach Thema.\n4. Nenne pro Punkt einen nächsten Schritt.\n\nAnliegen:\n' + (anon.text || '(keine)');
+      user = 'Rolle: Büroleiter für Hajo Bönke (SPD Bad Pyrmont).\n' +
+        'Hier sind ' + offen.length + ' offene Bürger-Anliegen.\n' +
+        'Aufgabe (nur aus den vorliegenden Texten, nichts erfinden):\n' +
+        '1. Kurze Gesamtschau (3 bis 5 Sätze).\n' +
+        '2. Prioritätenliste: zuerst dringend, dann wichtig, dann normal.\n' +
+        '3. Gruppierung nach Thema.\n' +
+        '4. Pro Punkt ein konkreter nächster Schritt (wer/was – ohne Versprechen).\n' +
+        '5. Unklarheiten mit „unsicher:“ markieren.\n\nAnliegen:\n' + (anon.text || '(keine)');
     } else if (task === 'antwort') {
       var a = o.anliegen || {};
       anon = anonymizeText('Thema: ' + (a.thema || '') + '\nOrt: ' + cleanLine(a.ort || '') + '\nStatus: ' + (a.status || '') + '\nAnliegen: ' + cleanText(a.text || ''),
         a.kontakt ? [a.kontakt] : []);
-      user = 'Schreibe einen kurzen, freundlichen Antwort-Entwurf an die Person, die dieses Anliegen geschickt hat. ' +
-        'Bedanke dich, sage ehrlich, was als Nächstes passiert (ohne Versprechen), und bitte um Geduld. ' +
-        'Anrede: "Guten Tag," (ohne Namen). Unterschrift: "[Name], für Hajo Bönke". Höchstens 120 Wörter, passend für WhatsApp.\n\n' + anon.text;
+      user = 'Rolle: freundlicher Büro-Mitarbeiter für Hajo Bönke.\n' +
+        'Schreibe einen respektvollen Antwort-Entwurf an die Bürgerin/den Bürger.\n' +
+        'Struktur: Dank → kurze Wiedergabe des Anliegens (ohne neue Fakten) → was als Nächstes passiert ' +
+        '(ehrlich, ohne Versprechen) → ggf. eine Rückfrage → Bitte um Geduld.\n' +
+        'Anrede: „Guten Tag,“ (ohne Namen). Unterschrift: „[Name], für Hajo Bönke“.\n' +
+        'Höchstens 120 Wörter, WhatsApp-tauglich, klare kurze Sätze.\n\n' + anon.text;
     } else if (task === 'text') {
       var art = TEXT_ARTEN.indexOf(o.art) >= 0 ? o.art : TEXT_ARTEN[0];
       anon = anonymizeText(cleanText(o.input || ''));
       var how = {
-        'Social-Media-Post': 'einen kurzen Social-Media-Post (höchstens 80 Wörter, 1 bis 2 Hashtags wie #BadPyrmont, keine Emojis-Flut)',
-        'Flyer-Text': 'einen Flyer-Text mit Überschrift, 3 bis 5 kurzen Absätzen und einem Aufruf zum Mitmachen',
-        'Pressemitteilung': 'eine sachliche Pressemitteilung mit Überschrift, Ort und [Datum], W-Fragen, ohne erfundene Zitate (Zitat nur als Platzhalter [Zitat Hajo Bönke])',
-        'Rede-Stichpunkte': 'Stichpunkte für eine kurze Rede (Einstieg, 3 bis 5 Kernpunkte, Schluss)'
+        'Social-Media-Post': 'einen kurzen Social-Media-Post (höchstens 80 Wörter, 1 bis 2 Hashtags wie #BadPyrmont, keine Emoji-Flut, sachlich-einladend)',
+        'Flyer-Text': 'einen Flyer-Text mit klarer Überschrift, 3 bis 5 kurzen Absätzen und einem konkreten Aufruf zum Mitmachen (Kontakt als Platzhalter)',
+        'Pressemitteilung': 'eine sachliche Pressemitteilung: Überschrift, „Bad Pyrmont, [Datum]“, W-Fragen, Fakten nur aus den Stichworten; Zitate nur als Platzhalter [Zitat Hajo Bönke]',
+        'Rede-Stichpunkte': 'Stichpunkte für eine kurze Rede: Einstieg, 3 bis 5 Kernpunkte mit Nutzen für Bürgerinnen und Bürger, Schluss mit Einladung zum Gespräch'
       }[art];
-      user = 'Schreibe ' + how + ' für Hajo Bönke, SPD Bad Pyrmont.\nThema und Stichworte:\n' + (anon.text || '[Thema]');
+      user = 'Rolle: Pressereferent für Hajo Bönke, SPD Bad Pyrmont.\nSchreibe ' + how + '.\n' +
+        'Nur belegte Inhalte aus den Stichworten; Unsicherheiten markieren.\nThema und Stichworte:\n' + (anon.text || '[Thema]');
     } else if (task === 'recherche') {
       anon = anonymizeText(cleanText(o.input || ''));
-      user = 'Suche Ideen und Beispiele zu diesem kommunalen Thema, z. B. wie andere Städte in Deutschland das gelöst haben. ' +
-        'Nenne 3 bis 6 konkrete Ideen mit je einem Satz Erklärung und wo es das schon gibt. Nur überprüfbare Angaben. ' +
-        'Wenn du etwas nicht sicher weißt, schreibe das.\nThema: ' + (anon.text || '[Thema]') + '\nOrt: Bad Pyrmont (Niedersachsen)';
+      user = 'Rolle: Recherche-Assistent für den Kommunalpolitiker Hajo Bönke (Bad Pyrmont, Niedersachsen).\n' +
+        'Nutze die verfügbare Internetsuche. Liefere 3 bis 6 konkrete Ideen/Beispiele aus anderen deutschen Kommunen.\n' +
+        'Pro Punkt: Was? Warum hilft das? Wo gibt es das schon? Eine Quelle nennen, wenn vorhanden.\n' +
+        'Nur überprüfbare Angaben. Wenn unsicher oder keine Quelle: ausdrücklich „unsicher“ schreiben.\n' +
+        'Am Ende: 2 bis 3 mögliche nächste Schritte für Bad Pyrmont (ohne Versprechen).\n' +
+        'Thema: ' + (anon.text || '[Thema]');
     } else {
       return null;
     }
     return { task: task, system: SYSTEM_KI, user: user, anon: anon };
   }
 
-  function buildGeminiRequestBody(prompt, grounding) {
+  /** thinkingBudget für Gemini 2.5; thinkingLevel „high“ für Gemini 3.x (REST generateContent). */
+  function thinkingConfigFor(model) {
+    var m = cleanModel(model, DEFAULT_GEMINI_MODEL);
+    if (!/^gemini-/.test(m)) return null; // z. B. Gemma: kein Denk-Parameter
+    if (/^gemini-2\.5/.test(m)) {
+      var budget = /pro/i.test(m) ? 32768 : GEMINI_THINKING_BUDGET_25;
+      return { thinkingBudget: budget };
+    }
+    return { thinkingLevel: 'high' };
+  }
+
+  /** maxOutputTokens zählt das Nachdenken mit: Budget + Platz für die Antwort. */
+  function maxOutputTokensFor(model) {
+    var tc = thinkingConfigFor(model);
+    if (tc && tc.thinkingBudget) return tc.thinkingBudget + GEMINI_ANSWER_TOKENS;
+    return GEMINI_MAX_OUTPUT_TOKENS;
+  }
+
+  /** Modell-Kette: Einstellungen zuerst, dann Standard-Ersatz, dann Lite. Ohne Doppelungen. */
+  function modelChain(cfg) {
+    cfg = cfg || {};
+    var list = [];
+    function add(raw, def) {
+      var m = cleanModel(raw, def);
+      if (list.indexOf(m) < 0) list.push(m);
+    }
+    add(cfg.model, DEFAULT_GEMINI_MODEL);
+    add(cfg.fallbackModel, FALLBACK_GEMINI_MODEL);
+    add(cfg.liteModel, LITE_GEMINI_MODEL);
+    return list;
+  }
+
+  function buildGeminiRequestBody(prompt, grounding, model) {
     var body = {
       systemInstruction: { parts: [{ text: prompt.system }] },
       contents: [{ role: 'user', parts: [{ text: prompt.user }] }],
-      generationConfig: { temperature: 0.4 }
+      generationConfig: {
+        maxOutputTokens: maxOutputTokensFor(model)
+      }
     };
+    var tc = thinkingConfigFor(model);
+    if (tc) body.generationConfig.thinkingConfig = tc;
+    // Gemini 3.x: Google empfiehlt Standard-Temperatur (1.0) – nicht setzen. Gemini 2.5: ruhiger (0.4).
+    if (/^gemini-2\.5/.test(cleanModel(model, DEFAULT_GEMINI_MODEL))) body.generationConfig.temperature = 0.4;
     if (grounding) body.tools = [{ google_search: {} }];
     return body;
   }
@@ -639,6 +697,7 @@
     });
     var keyish = /API_KEY_INVALID|API key not valid|API_KEY_SERVICE_BLOCKED|API_KEY_HTTP_REFERRER_BLOCKED|API key expired|CONSUMER_SUSPENDED/i.test(msg + reasons);
     var kind;
+    var hardLimit = /limit:\s*0\b/.test(msg);
     if (!status) kind = 'offline';
     else if (status === 429 || st === 'RESOURCE_EXHAUSTED') kind = 'quota';
     else if (keyish || status === 401) kind = 'key';
@@ -648,7 +707,7 @@
     else if (status === 400) kind = 'bad';
     else if (status >= 500) kind = 'server';
     else kind = 'other';
-    return { kind: kind, status: status, retryMs: retryMs, message: KI_MESSAGES[kind] || KI_MESSAGES.other };
+    return { kind: kind, status: status, retryMs: retryMs, hardLimit: hardLimit, message: KI_MESSAGES[kind] || KI_MESSAGES.other };
   }
   var KI_MESSAGES = {
     nokey: 'Die KI ist noch nicht eingerichtet. Bitte unter ⚙ Einstellungen einen kostenlosen Schlüssel eintragen.',
@@ -664,13 +723,17 @@
     blocked: 'Die KI hat keine Antwort gegeben (Sicherheits-Filter). Bitte anders formulieren.',
     empty: 'Die KI hat eine leere Antwort geschickt. Bitte noch einmal versuchen.',
     parse: 'Die Antwort der KI war nicht lesbar. Bitte noch einmal versuchen.',
+    timeout: 'Die KI hat zu lange gebraucht. Bitte noch einmal versuchen.',
     other: 'Die KI hat gerade nicht geantwortet. Bitte später noch einmal versuchen.'
   };
   var KI_NOTES = {
     groundingOff: 'Internet-Suche war nicht möglich (Limit oder nicht freigeschaltet). Antwort ohne Suche – bitte Fakten selbst prüfen.',
+    groundingModel: 'Für die Internet-Suche wurde ein anderes Modell genutzt (die Suche ist kostenlos nur bei manchen Modellen).',
     noSources: 'Die KI hat keine Quellen geliefert. Bitte Fakten selbst prüfen.',
-    fallbackModel: 'Das erste KI-Modell war ausgelastet. Die Antwort kommt vom Ersatz-Modell.',
-    offlineTpl: 'Ohne KI erstellt (Vorlage). Bitte [Klammern] ersetzen.'
+    fallbackModel: 'Das erste KI-Modell war ausgelastet oder überlastet. Die Antwort kommt vom nächsten Modell.',
+    answeredBy: 'Antwort von: ',
+    offlineTpl: 'Ohne KI erstellt (Vorlage). Bitte [Klammern] ersetzen.',
+    thinking: 'KI denkt gründlich nach … bitte einen Moment warten.'
   };
 
   // ------------------------------------------------------------ KI: Offline-Ersatz (Vorlagen)
@@ -797,7 +860,10 @@
     return pdfDoc('Infoblatt', 'Hajo Bönke · SPD Bad Pyrmont', B, o);
   }
   function pdfKiErgebnis(title, text, sources, o) {
-    var B = [{ t: 'meta', v: 'KI-Entwurf – bitte vor Verwendung prüfen.' }];
+    o = o || {};
+    var meta = 'KI-Entwurf – bitte vor Verwendung prüfen.';
+    if (o.model) meta += ' Antwort von: ' + cleanLine(o.model) + '.';
+    var B = [{ t: 'meta', v: meta }];
     cleanText(text).split(/\n{2,}/).forEach(function (p) { B.push({ t: 'p', v: p }); });
     if (sources && sources.length) {
       B.push({ t: 'h2', v: 'Quellen' });
@@ -839,7 +905,9 @@
     anonymizeText: anonymizeText, buildKiPrompt: buildKiPrompt, buildGeminiRequestBody: buildGeminiRequestBody,
     parseGeminiResponse: parseGeminiResponse, classifyGeminiError: classifyGeminiError, offlineFallback: offlineFallback,
     maskApiKey: maskApiKey, isValidModelId: isValidModelId, cleanModel: cleanModel, geminiUrl: geminiUrl, isGeminiUrl: isGeminiUrl, isHttpsUrl: isHttpsUrl,
-    DEFAULT_GEMINI_MODEL: DEFAULT_GEMINI_MODEL, FALLBACK_GEMINI_MODEL: FALLBACK_GEMINI_MODEL, GEMINI_BASE: GEMINI_BASE,
+    DEFAULT_GEMINI_MODEL: DEFAULT_GEMINI_MODEL, FALLBACK_GEMINI_MODEL: FALLBACK_GEMINI_MODEL, LITE_GEMINI_MODEL: LITE_GEMINI_MODEL,
+    GEMINI_MAX_OUTPUT_TOKENS: GEMINI_MAX_OUTPUT_TOKENS, GEMINI_THINKING_BUDGET_25: GEMINI_THINKING_BUDGET_25, GEMINI_TIMEOUT_MS: GEMINI_TIMEOUT_MS, GEMINI_BASE: GEMINI_BASE,
+    thinkingConfigFor: thinkingConfigFor, modelChain: modelChain, maxOutputTokensFor: maxOutputTokensFor, GEMINI_ANSWER_TOKENS: GEMINI_ANSWER_TOKENS,
     SYSTEM_KI: SYSTEM_KI, KI_TASKS: KI_TASKS, TEXT_ARTEN: TEXT_ARTEN, KI_MESSAGES: KI_MESSAGES, KI_NOTES: KI_NOTES, VORNAMEN: VORNAMEN,
     pdfSafe: pdfSafe, pdfFileName: pdfFileName, pdfAnliegenBericht: pdfAnliegenBericht, pdfWochenbericht: pdfWochenbericht,
     pdfTermine: pdfTermine, pdfIdeeFlyer: pdfIdeeFlyer, pdfKiErgebnis: pdfKiErgebnis, sampleData: sampleData

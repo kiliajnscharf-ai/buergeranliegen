@@ -93,3 +93,14 @@ fieldset.seg legend{font-weight:700;margin-bottom:6px;padding:0;width:100%}
 #kiResult,#kiSent{white-space:pre-wrap}
 #kiSettings h2{margin-top:1.4em}
 .link{background:none;border:none;color:#0b57d0;text-decoration:underline;font:inherit;padding:0;cursor:pointer}
+
+/* 2.2.0: KI denkt nach */
+.busy { display: block; }
+.spinner { display: inline-block; width: 1em; height: 1em; margin-right: .4em; vertical-align: -0.15em;
+  border: 3px solid rgba(0,0,0,.2); border-top-color: currentColor; border-radius: 50%; animation: baspin 1s linear infinite; }
+@keyframes baspin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+.model-used { margin: .2em 0 .4em; font-size: .95em; }
+.row.wrap>.mid{flex:1 1 calc(50% - 10px);min-width:140px}
+.model-used{font-weight:700;color:#333;background:#f2f2f2;border-radius:10px;padding:6px 10px;display:inline-block}
+.model-used[hidden]{display:none}

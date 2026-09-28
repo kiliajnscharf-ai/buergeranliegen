@@ -104,7 +104,8 @@
       } catch (e) { return Promise.resolve({ key: '', model: '', enabled: true }); }
     },
     setKi: function (cfg) {
-      var t = JSON.stringify({ key: cfg.key || '', model: cfg.model || '', enabled: cfg.enabled !== false });
+      var t = JSON.stringify({ key: cfg.key || '', model: cfg.model || '', fallbackModel: cfg.fallbackModel || '',
+        liteModel: cfg.liteModel || '', enabled: cfg.enabled !== false, v: 2 });
       if (typeof window.baSaveKi === 'function') {
         try { return Promise.resolve(window.baSaveKi(t)); } catch (e) { return Promise.resolve(); }
       }
@@ -122,7 +123,7 @@
 
   var state = {
     mode: '', number: '', data: BA.emptyData(), screen: 's-start', prev: null,
-    loc: null, photo: null, editing: null, canStore: true, toastT: 0, ki: { key: '', model: '', enabled: true }, lastKi: null
+    loc: null, photo: null, editing: null, canStore: true, toastT: 0, ki: BAKi.migrateCfg({}), lastKi: null
   };
   var TITLES = {
     's-start': ['Bürger-Anliegen Bad Pyrmont', 'für Hajo Bönke · SPD Bad Pyrmont'],
@@ -669,6 +670,8 @@
     if ($('kiEnabled')) $('kiEnabled').checked = state.ki.enabled !== false;
     if ($('kiKey')) $('kiKey').value = state.ki.key || '';
     if ($('kiModel')) $('kiModel').value = state.ki.model || BA.DEFAULT_GEMINI_MODEL;
+    if ($('kiFallback')) $('kiFallback').value = state.ki.fallbackModel || BA.FALLBACK_GEMINI_MODEL;
+    if ($('kiLite')) $('kiLite').value = state.ki.liteModel || BA.LITE_GEMINI_MODEL;
     if ($('kiMsg')) $('kiMsg').hidden = true;
     if ($('kiErr')) $('kiErr').hidden = true;
   }
@@ -682,7 +685,7 @@
       return function (req) {
         if (!BA.isGeminiUrl(req.url)) return Promise.resolve({ status: 0, text: '' });
         return Promise.resolve(window.baGemini(req.method, req.url, req.body || '', req.key || '')).then(function (r) {
-          return { status: (r && +r.status) || 0, text: (r && typeof r.text === 'string') ? r.text : '' };
+          return { status: (r && +r.status) || 0, text: (r && typeof r.text === 'string') ? r.text : '', timeout: !!(r && r.timeout) };
         }, function () { return { status: 0, text: '' }; });
       };
     }
@@ -833,14 +836,22 @@
     if ($('saveKi')) $('saveKi').addEventListener('click', function () {
       state.ki = {
         key: ($('kiKey').value || '').trim(),
-        model: ($('kiModel').value || '').trim() || BA.DEFAULT_GEMINI_MODEL,
-        enabled: $('kiEnabled').checked
+        model: BA.cleanModel(($('kiModel').value || '').trim(), BA.DEFAULT_GEMINI_MODEL),
+        fallbackModel: BA.cleanModel(($('kiFallback') ? $('kiFallback').value : '').trim(), BA.FALLBACK_GEMINI_MODEL),
+        liteModel: BA.cleanModel(($('kiLite') ? $('kiLite').value : '').trim(), BA.LITE_GEMINI_MODEL),
+        enabled: $('kiEnabled').checked, v: 2
       };
       store.setKi(state.ki).then(function () {
         fillKiSettings(); refreshKiTile();
         $('kiMsg').hidden = false; $('kiMsg').textContent = 'Gespeichert.';
         $('kiErr').hidden = true;
       });
+    });
+    if ($('kiModelsReset')) $('kiModelsReset').addEventListener('click', function () {
+      $('kiModel').value = BA.DEFAULT_GEMINI_MODEL;
+      if ($('kiFallback')) $('kiFallback').value = BA.FALLBACK_GEMINI_MODEL;
+      if ($('kiLite')) $('kiLite').value = BA.LITE_GEMINI_MODEL;
+      $('kiMsg').hidden = false; $('kiMsg').textContent = 'Standard-Modelle eingetragen. Bitte „KI speichern“ tippen.';
     });
     if ($('delKi')) $('delKi').addEventListener('click', function () {
       state.ki.key = '';
@@ -871,7 +882,8 @@
     });
     if ($('kiPdf')) $('kiPdf').addEventListener('click', function () {
       var src = (state.lastKi && state.lastKi.sources) || [];
-      makePdfAndSave(BA.pdfKiErgebnis('KI-Ergebnis', $('kiResult').value, src), 'ki-ergebnis');
+      var mdl = (state.lastKi && !state.lastKi.offline && state.lastKi.model) || '';
+      makePdfAndSave(BA.pdfKiErgebnis('KI-Ergebnis', $('kiResult').value, src, { model: mdl }), 'ki-ergebnis');
     });
     if ($('kiConsentYes')) $('kiConsentYes').addEventListener('click', function () {
       store.setKiConsent(); $('kiConsent').hidden = true;
@@ -942,13 +954,29 @@
       $('kiBusy').hidden = false; $('kiResultBox').hidden = true; $('kiRun').disabled = true;
       var anliegen = task === 'antwort' ? BA.findById(state.data.anliegen, $('kiAnliegen').value) : null;
       var grounding = !!$('kiGrounding').checked; // optional pro Anfrage
+      var started = Date.now(), curModel = '', curSearch = false;
+      function busyText() {
+        var s = Math.round((Date.now() - started) / 1000);
+        if ($('kiBusyDetail')) $('kiBusyDetail').textContent = (curModel ? 'Modell: ' + curModel + (curSearch ? ' mit Google-Suche' : '') + ' · ' : '') +
+          s + ' Sekunden. Gründliches Nachdenken kann 1–2 Minuten dauern. Sie können die App weiter benutzen.';
+      }
+      busyText();
+      var tick = setInterval(busyText, 1000);
       BAKi.run({
         task: task, input: $('kiInput') ? $('kiInput').value : '', art: $('kiArt') ? $('kiArt').value : '',
         anliegen: anliegen, data: state.data, cfg: state.ki, grounding: grounding,
-        transport: transportForKi()
+        transport: transportForKi(),
+        onProgress: function (p) { curModel = p.model; curSearch = !!p.grounding; busyText(); }
       }).then(function (r) {
+        clearInterval(tick);
         $('kiBusy').hidden = true; $('kiRun').disabled = false;
         state.lastKi = r;
+        if ($('kiModelUsed')) {
+          var used = r.ok && !r.offline && r.model;
+          $('kiModelUsed').hidden = !(r.ok || r.offline);
+          $('kiModelUsed').textContent = used ? BA.KI_NOTES.answeredBy + r.model + (r.grounded ? ' (mit Google-Suche)' : '')
+            : BA.KI_NOTES.answeredBy + 'Offline-Vorlage (ohne KI)';
+        }
         if (!r.ok && !r.offline) {
           $('kiError').hidden = false; $('kiError').textContent = (r.error && r.error.message) || BA.KI_MESSAGES.other;
           return;
@@ -990,8 +1018,9 @@
     state.number = vn.ok ? vn.number : '';
     state.mode = arr[1] === 'buerger' || arr[1] === 'helfer' ? arr[1] : '';
     state.data = arr[2];
-    state.ki = arr[3] || { key: '', model: '', enabled: true };
-    if (!state.ki.model) state.ki.model = BA.DEFAULT_GEMINI_MODEL;
+    var rawKi = arr[3] || { key: '', model: '', enabled: true };
+    state.ki = BAKi.migrateCfg(rawKi);
+    if (!(rawKi.v >= 2)) store.setKi(state.ki); // Update 2.1 -> 2.2: neue Modell-Kette merken
     // localStorage-Probe
     try { localStorage.setItem('__ba_probe', '1'); localStorage.removeItem('__ba_probe'); state.canStore = true; }
     catch (e) { state.canStore = typeof window.baSaveData === 'function'; }
