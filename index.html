@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self'; script-src 'self'; connect-src 'self' https://generativelanguage.googleapis.com; form-action 'none'; object-src 'none'; base-uri 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Bürger-Anliegen Bad Pyrmont</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <button id="backBtn" type="button" class="topbtn" hidden aria-label="Zurück">‹ Zurück</button>
+  <div class="toptitle">
+    <h1 id="topTitle">Bürger-Anliegen Bad Pyrmont</h1>
+    <p id="topSub" class="sub">für Hajo Bönke · SPD Bad Pyrmont</p>
+  </div>
+  <button id="gearBtn" type="button" class="topbtn gear" aria-label="Einstellungen" title="Einstellungen">⚙</button>
+</header>
+
+<main>
+<!-- ================= Start: Modus wählen ================= -->
+<section id="s-start" class="screen" hidden>
+  <h2 class="center">Willkommen!</h2>
+  <p class="lead center">Was möchten Sie tun?</p>
+  <button id="pickBuerger" type="button" class="tile red">
+    <span class="ico" aria-hidden="true">✉️</span>
+    <span><strong>Anliegen senden</strong><br><small>Für Bürgerinnen und Bürger</small></span>
+  </button>
+  <button id="pickHelfer" type="button" class="tile">
+    <span class="ico" aria-hidden="true">🗂️</span>
+    <span><strong>Helfer-Bereich</strong><br><small>Anliegen, Ideen und Termine für Hajo ordnen</small></span>
+  </button>
+  <p class="hint center">Die App merkt sich Ihre Wahl.<br>Ändern können Sie das jederzeit unter ⚙ Einstellungen.</p>
+</section>
+
+<!-- ================= Bürger-Modus ================= -->
+<section id="s-buerger" class="screen" hidden>
+  <form id="form" novalidate>
+    <p id="target" class="info"></p>
+
+    <fieldset class="seg" id="artGroup">
+      <legend>1. Was möchten Sie senden?</legend>
+      <label class="choice"><input type="radio" name="art" value="Anliegen" checked><span>Anliegen</span></label>
+      <label class="choice"><input type="radio" name="art" value="Idee"><span>Idee</span></label>
+    </fieldset>
+
+    <label for="thema">2. Thema <small>(freiwillig)</small></label>
+    <select id="thema"><option value="">Bitte wählen …</option></select>
+
+    <fieldset class="seg three" id="dringGroup">
+      <legend>3. Wie wichtig ist es?</legend>
+      <label class="choice"><input type="radio" name="dring" value="normal" checked><span>normal</span></label>
+      <label class="choice"><input type="radio" name="dring" value="wichtig"><span>wichtig</span></label>
+      <label class="choice"><input type="radio" name="dring" value="dringend"><span>dringend</span></label>
+    </fieldset>
+
+    <label for="text">4. Ihre Nachricht <small>(Pflichtfeld)</small></label>
+    <textarea id="text" rows="6" maxlength="4000" placeholder="Was möchten Sie Hajo mitteilen?"></textarea>
+    <p id="error" class="error" role="alert" hidden>Bitte schreiben Sie zuerst Ihre Nachricht.</p>
+
+    <label for="name">5. Name <small>(freiwillig)</small></label>
+    <input id="name" type="text" autocomplete="name" maxlength="120" placeholder="z. B. Maria Muster">
+
+    <label for="ort">6. Ortsteil / Straße <small>(freiwillig)</small></label>
+    <input id="ort" type="text" maxlength="120" placeholder="z. B. Holzhausen, Hauptstraße">
+
+    <div class="extras">
+      <button id="locBtn" type="button" class="mid secondary">📍 Standort anhängen</button>
+      <p id="locStatus" class="hint" role="status" hidden></p>
+      <button id="locDel" type="button" class="link" hidden>Standort entfernen</button>
+
+      <div id="photoBox" hidden>
+        <button id="photoBtn" type="button" class="mid secondary">📷 Foto anhängen</button>
+        <div id="photoInfo" class="photoinfo" hidden>
+          <img id="photoThumb" alt="Ihr Foto (Vorschau)">
+          <span>Foto angehängt ✓</span>
+          <button id="photoDel" type="button" class="link">Foto entfernen</button>
+        </div>
+      </div>
+    </div>
+
+    <label class="consent"><input id="consent" type="checkbox">
+      <span>Ich bin einverstanden: Meine Angaben gehen per WhatsApp an Hajo Bönke.</span></label>
+    <p id="consentError" class="error" role="alert" hidden>Bitte setzen Sie zuerst den Haken beim Einverständnis.</p>
+
+    <button id="send" type="submit" class="big wa">Per WhatsApp an Hajo senden</button>
+  </form>
+
+  <section id="after" class="after" hidden>
+    <p>WhatsApp wurde geöffnet. Bitte dort auf <strong>Senden</strong> tippen.</p>
+    <button id="clear" type="button" class="big secondary">Fertig – Formular leeren</button>
+    <button id="keep" type="button" class="link">Text behalten</button>
+  </section>
+
+  <details class="privacy">
+    <summary>🔒 Datenschutz – kurz erklärt</summary>
+    <ul>
+      <li>Die App speichert Ihr Anliegen <strong>nicht</strong>. Es gibt keinen Server.</li>
+      <li>Ihre Nachricht geht nur über WhatsApp an Hajo – erst wenn Sie in WhatsApp auf Senden tippen.</li>
+      <li>Name, Ort, Standort und Foto sind freiwillig.</li>
+      <li>Kein Tracking, keine Werbung, keine Verbindungen zu fremden Servern.</li>
+      <li>Für WhatsApp gelten die Datenschutz-Regeln von WhatsApp (Meta).</li>
+    </ul>
+  </details>
+</section>
+
+<!-- ================= Einstellungen ================= -->
+<section id="s-settings" class="screen" hidden>
+  <h2>Einstellungen</h2>
+  <label for="number">WhatsApp-Nummer von Hajo <small>(international, z. B. +49 …)</small></label>
+  <input id="number" type="tel" inputmode="tel" autocomplete="off" placeholder="+49 …">
+  <p id="numError" class="error" role="alert" hidden></p>
+  <p id="numOk" class="ok" role="status" hidden></p>
+  <div class="row">
+    <button id="saveNum" type="button" class="mid">Speichern</button>
+    <button id="delNum" type="button" class="mid secondary">Löschen</button>
+  </div>
+  <p class="hint">Ohne Nummer wählen Sie den Chat in WhatsApp selbst aus. Die Nummer wird nur auf diesem Gerät gespeichert.</p>
+
+  <h2>Modus</h2>
+  <p id="modeNow" class="info"></p>
+  <button id="switchMode" type="button" class="mid secondary">Modus wechseln</button>
+
+
+  <div id="kiSettings">
+  <h2>KI-Assistent <small>(nur Helfer)</small></h2>
+  <p id="kiStatus" class="info">KI: nicht eingerichtet</p>
+  <label class="consent"><input id="kiEnabled" type="checkbox" checked><span>KI einschalten</span></label>
+  <label for="kiKey">Gemini-Schlüssel <small>(kostenlos, nur auf diesem Gerät)</small></label>
+  <input id="kiKey" type="password" autocomplete="off" spellcheck="false" placeholder="Schlüssel hier einfügen">
+  <label for="kiModel">Modell <small>(nur ändern, wenn nötig)</small></label>
+  <input id="kiModel" type="text" autocomplete="off" spellcheck="false" maxlength="80" list="kiModels" placeholder="gemini-2.5-flash">
+  <datalist id="kiModels"><option value="gemini-2.5-flash"><option value="gemini-3.8-flash"><option value="gemini-3.5-flash-lite"></datalist>
+  <div class="row">
+    <button id="saveKi" type="button" class="mid">KI speichern</button>
+    <button id="testKi" type="button" class="mid secondary">Schlüssel testen</button>
+  </div>
+  <button id="delKi" type="button" class="link">Schlüssel löschen</button>
+  <p id="kiMsg" class="ok" role="status" hidden></p>
+  <p id="kiErr" class="error" role="alert" hidden></p>
+  <details class="privacy" id="kiHowto">
+    <summary>🔑 Kostenlosen KI-Schlüssel holen</summary>
+    <ol class="steps">
+      <li>Diese Seite öffnen: <button id="openStudio" type="button" class="link">aistudio.google.com/apikey</button></li>
+      <li>Mit Google-Konto anmelden.</li>
+      <li>„Create API key“ (API-Schlüssel erstellen) tippen.</li>
+      <li>Schlüssel kopieren, oben einfügen, „KI speichern“ tippen.</li>
+      <li>„Schlüssel testen“ tippen. Fertig.</li>
+    </ol>
+    <p class="hint">Kostenlos: <strong>kein</strong> Zahlungskonto (Billing) einrichten. Dann kann nichts kosten.
+      Ist das Tageslimit erreicht, sagt die App Bescheid.</p>
+  </details>
+  </div>
+  <p class="version">Bürger-Anliegen Bad Pyrmont · Version <span id="ver">2.1.0</span><br>Kostenlos · ohne Werbung · ohne Tracking</p>
+</section>
+
+<!-- ================= Helfer: Übersicht ================= -->
+<section id="s-helfer" class="screen" hidden>
+  <p class="info">Alle Daten bleiben nur auf diesem Gerät. Machen Sie ab und zu eine Sicherung.</p>
+  <p id="storeWarn" class="error" hidden>Achtung: Dieser Browser kann nichts speichern. Bitte eine Sicherung machen, bevor Sie die Seite schließen.</p>
+  <div class="tiles">
+    <button type="button" class="tile" data-go="s-anliegen"><span class="ico" aria-hidden="true">📋</span><span><strong>Anliegen</strong><br><small id="cntAnliegen"></small></span></button>
+    <button type="button" class="tile" data-go="s-ideen"><span class="ico" aria-hidden="true">💡</span><span><strong>Ideen</strong><br><small id="cntIdeen"></small></span></button>
+    <button type="button" class="tile" data-go="s-termine"><span class="ico" aria-hidden="true">📅</span><span><strong>Termine &amp; Aufgaben</strong><br><small id="cntTermine"></small></span></button>
+    <button type="button" class="tile" data-go="s-summary"><span class="ico" aria-hidden="true">📨</span><span><strong>Wochen-Zusammenfassung</strong><br><small>für Hajo, mit einem Tipp</small></span></button>
+    <button type="button" class="tile" data-go="s-backup"><span class="ico" aria-hidden="true">💾</span><span><strong>Sichern &amp; Export</strong><br><small>Sicherung, Tabelle</small></span></button>
+    <button type="button" class="tile" data-go="s-pdf"><span class="ico" aria-hidden="true">📄</span><span><strong>PDF erstellen</strong><br><small>Berichte, Listen, Infoblatt</small></span></button>
+    <button type="button" class="tile" data-go="s-ki"><span class="ico" aria-hidden="true">✨</span><span><strong>KI-Assistent</strong><br><small id="cntKi">kostenloser Schlüssel nötig</small></span></button>
+  </div>
+</section>
+
+<!-- ================= Helfer: Anliegen-Liste ================= -->
+<section id="s-anliegen" class="screen" hidden>
+  <button id="newAnliegen" type="button" class="big">+ Neues Anliegen</button>
+  <div class="row filters">
+    <label class="inl">Thema<select id="fThema"><option value="">Alle Themen</option></select></label>
+    <label class="inl">Status<select id="fStatus"><option value="">Alle</option></select></label>
+  </div>
+  <p id="anliegenEmpty" class="empty" hidden></p>
+  <ul id="anliegenList" class="cards"></ul>
+</section>
+
+<!-- ================= Helfer: Anliegen bearbeiten ================= -->
+<section id="s-anliegen-edit" class="screen" hidden>
+  <h2 id="aeTitle">Neues Anliegen</h2>
+  <label for="aeThema">Thema</label>
+  <select id="aeThema"></select>
+  <label for="aeDring">Wie wichtig?</label>
+  <select id="aeDring"></select>
+  <label for="aeText">Was ist das Anliegen? <small>(Pflichtfeld)</small></label>
+  <textarea id="aeText" rows="5" maxlength="4000"></textarea>
+  <p id="aeError" class="error" role="alert" hidden>Bitte beschreiben Sie das Anliegen.</p>
+  <label for="aeOrt">Ort <small>(freiwillig)</small></label>
+  <input id="aeOrt" type="text" maxlength="120" placeholder="z. B. Oesdorf, Schulstraße">
+  <label for="aeKontakt">Kontakt <small>(freiwillig, nur mit Einverständnis)</small></label>
+  <input id="aeKontakt" type="text" maxlength="120" placeholder="z. B. Name, Telefon">
+  <label for="aeStatus">Status</label>
+  <select id="aeStatus"></select>
+  <button id="aeSave" type="button" class="big">Speichern</button>
+  <button id="aeDelete" type="button" class="mid danger" hidden>Löschen</button>
+</section>
+
+<!-- ================= Helfer: Ideen ================= -->
+<section id="s-ideen" class="screen" hidden>
+  <button id="newIdee" type="button" class="big">+ Eigene Idee</button>
+  <h2>Meine Ideen</h2>
+  <p id="ideenEmpty" class="empty" hidden></p>
+  <ul id="ideenList" class="cards"></ul>
+  <h2>Vorlagen zum Kopieren</h2>
+  <p class="hint">Texte in [Klammern] bitte ersetzen.</p>
+  <ul id="vorlagenList" class="cards"></ul>
+</section>
+
+<section id="s-idee-edit" class="screen" hidden>
+  <h2 id="ieTitle">Neue Idee</h2>
+  <label for="ieTitel">Titel <small>(kurz)</small></label>
+  <input id="ieTitel" type="text" maxlength="120" placeholder="z. B. Bank am Spielplatz">
+  <label for="ieText">Beschreibung</label>
+  <textarea id="ieText" rows="8" maxlength="4000"></textarea>
+  <p id="ieError" class="error" role="alert" hidden>Bitte einen Titel oder eine Beschreibung eintragen.</p>
+  <button id="ieSave" type="button" class="big">Speichern</button>
+  <button id="ieCopy" type="button" class="mid secondary">Text kopieren</button>
+  <button id="ieDelete" type="button" class="mid danger" hidden>Löschen</button>
+</section>
+
+<!-- ================= Helfer: Termine ================= -->
+<section id="s-termine" class="screen" hidden>
+  <button id="newTermin" type="button" class="big">+ Neuer Termin / Aufgabe</button>
+  <p id="termineEmpty" class="empty" hidden></p>
+  <ul id="termineList" class="cards"></ul>
+</section>
+
+<section id="s-termin-edit" class="screen" hidden>
+  <h2 id="teTitle">Neuer Termin</h2>
+  <label for="teTitel">Was? <small>(Pflichtfeld)</small></label>
+  <input id="teTitel" type="text" maxlength="120" placeholder="z. B. Infostand am Markt">
+  <p id="teError" class="error" role="alert" hidden>Bitte eintragen, was gemacht wird.</p>
+  <div class="row">
+    <label class="inl">Datum <small>(freiwillig)</small><input id="teDatum" type="date" min="2000-01-01" max="2100-12-31"></label>
+    <label class="inl">Uhrzeit<input id="teZeit" type="time"></label>
+  </div>
+  <label for="teDauer">Dauer</label>
+  <select id="teDauer">
+    <option value="30">30 Minuten</option><option value="60" selected>1 Stunde</option><option value="90">1,5 Stunden</option>
+    <option value="120">2 Stunden</option><option value="180">3 Stunden</option><option value="240">4 Stunden</option><option value="480">8 Stunden</option>
+  </select>
+  <label for="teOrt">Ort <small>(freiwillig)</small></label>
+  <input id="teOrt" type="text" maxlength="120" placeholder="z. B. Marktplatz">
+  <label for="teNotiz">Notiz <small>(freiwillig)</small></label>
+  <textarea id="teNotiz" rows="3" maxlength="4000"></textarea>
+
+  <h3>Checkliste</h3>
+  <div class="row">
+    <label class="inl">Vorlage<select id="teVorlage"><option value="">Vorlage wählen …</option></select></label>
+    <button id="teVorlageAdd" type="button" class="mid secondary">Einfügen</button>
+  </div>
+  <ul id="teCheck" class="checklist"></ul>
+  <div class="row">
+    <input id="teItem" type="text" maxlength="120" placeholder="Eigener Punkt" aria-label="Eigener Punkt">
+    <button id="teItemAdd" type="button" class="mid secondary">+</button>
+  </div>
+  <label class="consent"><input id="teDone" type="checkbox"><span>Alles erledigt</span></label>
+
+  <button id="teSave" type="button" class="big">Speichern</button>
+  <button id="teCal" type="button" class="mid secondary" hidden>📅 In Kalender eintragen</button>
+  <button id="teDelete" type="button" class="mid danger" hidden>Löschen</button>
+</section>
+
+<!-- ================= Helfer: Wochen-Zusammenfassung ================= -->
+<section id="s-summary" class="screen" hidden>
+  <p class="hint">Die letzten 7 Tage. Bitte vor dem Senden kurz prüfen.</p>
+  <pre id="summaryText" class="summary"></pre>
+  <button id="sumSend" type="button" class="big wa">Per WhatsApp an Hajo senden</button>
+  <button id="sumCopy" type="button" class="mid secondary">Text kopieren</button>
+</section>
+
+<!-- ================= Helfer: Sichern ================= -->
+<section id="s-backup" class="screen" hidden>
+  <h2>Sicherung</h2>
+  <p class="hint">Speichert alle Anliegen, Ideen und Termine in einer Datei.</p>
+  <button id="bkExport" type="button" class="big">Sicherung speichern</button>
+  <button id="bkImportBtn" type="button" class="mid secondary">Sicherung laden</button>
+  <input id="bkFile" type="file" accept=".json,application/json" hidden>
+  <p id="bkStatus" class="ok" role="status" hidden></p>
+  <p id="bkError" class="error" role="alert" hidden></p>
+  <h2>Tabelle</h2>
+  <p class="hint">Alle Anliegen als Tabelle (CSV) – öffnet in Excel oder LibreOffice.</p>
+  <button id="csvExport" type="button" class="mid secondary">Tabelle speichern (CSV)</button>
+  <h2>Alles löschen</h2>
+  <button id="wipeAll" type="button" class="mid danger">Alle Helfer-Daten löschen</button>
+</section>
+
+<!-- ================= Helfer: PDF ================= -->
+<section id="s-pdf" class="screen" hidden>
+  <p class="hint">PDF-Dateien werden auf dem Gerät erstellt. Ohne Internet, ohne KI.</p>
+  <h2>Anliegen-Bericht</h2>
+  <div class="row filters">
+    <label class="inl">Thema<select id="pdfThema"></select></label>
+    <label class="inl">Status<select id="pdfStatus"></select></label>
+  </div>
+  <label class="consent"><input id="pdfKontakt" type="checkbox"><span>Kontaktdaten mit drucken</span></label>
+  <button id="pdfAnliegen" type="button" class="big">📄 Anliegen-Bericht</button>
+  <h2>Weitere PDFs</h2>
+  <button id="pdfWoche" type="button" class="big secondary">📄 Wochenbericht für Hajo</button>
+  <button id="pdfTermine" type="button" class="big secondary">📄 Termine &amp; Aufgaben</button>
+  <label for="pdfIdeeSel">Ideen-Infoblatt / Flyer</label>
+  <select id="pdfIdeeSel"></select>
+  <button id="pdfIdee" type="button" class="big secondary">📄 Infoblatt erstellen</button>
+  <p id="pdfMsg" class="ok" role="status" hidden></p>
+</section>
+
+<!-- ================= Helfer: KI ================= -->
+<section id="s-ki" class="screen" hidden>
+  <div id="kiSetup" class="info" hidden>
+    <p><strong>Die KI ist noch nicht eingerichtet.</strong></p>
+    <p>Sie brauchen einen kostenlosen Schlüssel von Google. Das dauert 2 Minuten.</p>
+    <button id="kiGoSettings" type="button" class="mid">Zu den Einstellungen</button>
+  </div>
+  <div id="kiOff" class="info" hidden><p>Die KI ist ausgeschaltet. Einschalten unter ⚙ Einstellungen.</p></div>
+  <div id="kiMain" hidden>
+    <p class="hint">Vor dem Senden entfernt die App Namen, Telefonnummern, E-Mails und Hausnummern.</p>
+    <label for="kiTask">1. Was soll die KI tun?</label>
+    <select id="kiTask">
+      <option value="zusammenfassen">Offene Anliegen zusammenfassen und ordnen</option>
+      <option value="antwort">Antwort-Entwurf an Bürger</option>
+      <option value="text">Text schreiben</option>
+      <option value="recherche">Ideen-Recherche im Internet</option>
+    </select>
+    <div id="kiAnliegenBox" hidden>
+      <label for="kiAnliegen">Welches Anliegen?</label>
+      <select id="kiAnliegen"></select>
+    </div>
+    <div id="kiArtBox" hidden>
+      <label for="kiArt">Art des Textes</label>
+      <select id="kiArt">
+        <option>Social-Media-Post</option><option>Flyer-Text</option><option>Pressemitteilung</option><option>Rede-Stichpunkte</option>
+      </select>
+    </div>
+    <div id="kiTextBox" hidden>
+      <label for="kiInput" id="kiInputLabel">Thema / Stichworte</label>
+      <textarea id="kiInput" rows="4"></textarea>
+    </div>
+    <label class="consent" id="kiGroundingBox"><input id="kiGrounding" type="checkbox"><span>🔎 Mit Google-Suche (aktuelle Fakten und Quellen)</span></label>
+    <p class="hint">Wenn die Suche nicht klappt, antwortet die KI ohne Suche.</p>
+    <p id="kiInputErr" class="error" role="alert" hidden>Bitte zuerst etwas eintragen.</p>
+    <button id="kiRun" type="button" class="big">✨ KI fragen</button>
+    <p id="kiBusy" class="info" role="status" hidden>Die KI arbeitet … bitte kurz warten.</p>
+    <p id="kiError" class="error" role="alert" hidden></p>
+  </div>
+  <div id="kiResultBox" hidden>
+    <h2>Ergebnis <small>(Entwurf – bitte prüfen)</small></h2>
+    <p id="kiNote" class="warn" hidden></p>
+    <textarea id="kiResult" rows="12" aria-label="Ergebnis der KI"></textarea>
+    <div id="kiSourcesBox" hidden>
+      <h3>Quellen</h3>
+      <ul id="kiSources" class="sources"></ul>
+    </div>
+    <div class="row wrap">
+      <button id="kiCopy" type="button" class="mid secondary">Kopieren</button>
+      <button id="kiWa" type="button" class="mid wa">WhatsApp</button>
+      <button id="kiIdee" type="button" class="mid secondary">Als Idee speichern</button>
+      <button id="kiPdf" type="button" class="mid secondary">Als PDF</button>
+    </div>
+    <details class="privacy"><summary>Was ging an Google?</summary><pre id="kiSent" class="summary"></pre></details>
+  </div>
+</section>
+</main>
+
+<!-- Dialog + Hinweis -->
+<div id="modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modalText">
+  <div class="modalbox">
+    <p id="modalText"></p>
+    <button id="modalYes" type="button" class="big">Ja</button>
+    <button id="modalNo" type="button" class="mid secondary">Abbrechen</button>
+  </div>
+</div>
+<div id="kiConsent" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="kiConsentText">
+  <div class="modalbox">
+    <p id="kiConsentText"><strong>Einmaliger Hinweis zur KI</strong><br><br>
+    Wenn Sie die KI nutzen, geht Text an Google (Gemini).<br>
+    Vorher entfernt die App Namen, Telefonnummern, E-Mails und Straße mit Hausnummer. Ortsteil und Thema bleiben.<br><br>
+    Im kostenlosen Zugang kann Google die Texte zur Verbesserung nutzen. Bitte keine privaten Daten eintippen.<br>
+    Die KI sendet nie selbst etwas. Sie prüfen alles vor dem Senden.</p>
+    <button id="kiConsentYes" type="button" class="big">Verstanden, weiter</button>
+    <button id="kiConsentNo" type="button" class="mid secondary">Abbrechen</button>
+  </div>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="config.js"></script>
+<script src="vendor/jspdf.umd.min.js"></script>
+<script src="logic.js"></script>
+<script src="pdf.js"></script>
+<script src="ki.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
