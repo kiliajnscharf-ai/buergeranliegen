@@ -13,6 +13,8 @@
     window.baSaveData = function (t) { if (!AB.saveData(t)) throw new Error('save'); return true; };
     window.baOpenExternal = function (u) { AB.openExternal(u); };
     window.baSendWhatsApp = function (msg, num, photo) { AB.sendWhatsApp(msg, num || '', !!photo); };
+    // 2.3.0: Chat selbst wählen (Link weitergeben) – Android nimmt dann NICHT die gespeicherte Nummer
+    if (typeof AB.sendWhatsAppAnyChat === 'function') window.baSendWhatsAppAnyChat = function (msg) { AB.sendWhatsAppAnyChat(msg); };
     window.baSaveFile = function (name, text) { AB.shareFile(name, text); return true; };
     window.baSaveBytes = function (name, b64) {
       if (typeof AB.shareBytes === 'function') { AB.shareBytes(name, b64); return true; }
@@ -47,6 +49,11 @@
   var KEY_CONSENT = 'buergeranliegen-consent-seen';
   var KEY_KI = 'buergeranliegen-ki';
   var KEY_KI_CONSENT = 'buergeranliegen-ki-consent';
+  var KEY_LINK_NUM = 'buergeranliegen-link-mit-nummer';
+  var UA = (navigator.userAgent || '');
+  // iPhone/iPad (iPadOS meldet sich als Mac mit Touch)
+  var IS_IOS = /iPhone|iPad|iPod/.test(UA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var IS_MOBILE = IS_IOS || /Android|Mobile/i.test(UA);
 
   // ---- Speicher: Windows-Bindungen oder localStorage
   var store = {
@@ -80,7 +87,7 @@
       catch (e) { return Promise.resolve(BA.emptyData()); }
     },
     setData: function (d) {
-      var t = JSON.stringify({ version: 2, mode: d.mode || '', anliegen: d.anliegen, ideen: d.ideen, termine: d.termine });
+      var t = JSON.stringify({ version: 2, mode: d.mode || '', anliegen: d.anliegen, ideen: d.ideen, termine: d.termine, lastBackup: d.lastBackup || '' });
       try { localStorage.setItem(KEY_DATA, t); state.canStore = true; }
       catch (e) { state.canStore = false; }
       if (typeof window.baSaveData === 'function') {
@@ -123,8 +130,11 @@
 
   var state = {
     mode: '', number: '', data: BA.emptyData(), screen: 's-start', prev: null,
-    loc: null, photo: null, editing: null, canStore: true, toastT: 0, ki: BAKi.migrateCfg({}), lastKi: null
+    loc: null, photo: null, editing: null, canStore: true, toastT: 0, ki: BAKi.migrateCfg({}), lastKi: null,
+    linkNumber: '', lastMsg: null
   };
+  /** Gespeicherte Nummer hat Vorrang. Sonst die Nummer aus Hajos Link (nur für diesen Besuch, nicht gespeichert). */
+  function effNumber() { return state.number || state.linkNumber || ''; }
   var TITLES = {
     's-start': ['Bürger-Anliegen Bad Pyrmont', 'für Hajo Bönke · SPD Bad Pyrmont'],
     's-buerger': ['Anliegen senden', 'An Hajo per WhatsApp'],
@@ -139,43 +149,80 @@
     's-summary': ['Wochen-Zusammenfassung', 'Für Hajo'],
     's-backup': ['Sichern & Export', 'Sicherung und Tabelle'],
     's-pdf': ['PDF erstellen', 'Berichte offline'],
-    's-ki': ['KI-Assistent', 'Entwürfe prüfen']
+    's-ki': ['KI-Assistent', 'Entwürfe prüfen'],
+    's-link': ['Bürger-Link', 'QR-Code zum Weitergeben']
   };
 
   function toast(msg) {
     var t = $('toast'); t.textContent = msg; t.hidden = false;
     clearTimeout(state.toastT);
-    state.toastT = setTimeout(function () { t.hidden = true; }, 2500);
+    state.toastT = setTimeout(function () { t.hidden = true; }, 4000);
   }
   function confirmDlg(msg) {
     return new Promise(function (res) {
+      var back = document.activeElement;
       $('modalText').textContent = msg;
       $('modal').hidden = false;
+      function onKey(e) { if (e.key === 'Escape') { e.preventDefault(); done(false); } }
       function done(y) {
         $('modal').hidden = true;
         $('modalYes').onclick = null; $('modalNo').onclick = null;
+        document.removeEventListener('keydown', onKey);
+        try { if (back && back.focus) back.focus(); } catch (e) {}
         res(y);
       }
       $('modalYes').onclick = function () { done(true); };
       $('modalNo').onclick = function () { done(false); };
+      document.addEventListener('keydown', onKey);
+      try { $('modalYes').focus(); } catch (e) {}
     });
   }
   function openUrl(url) {
     if (!BA.isAllowedExternal(url) && url.indexOf('https://wa.me/') !== 0) return;
     if (typeof window.baOpenExternal === 'function') { window.baOpenExternal(url); return; }
+    // Handy: WhatsApp im selben Tab öffnen (kein leerer Zusatz-Tab, kein Pop-up-Blocker, v. a. iPhone Safari).
+    if (IS_MOBILE && url.indexOf('https://wa.me/') === 0) { try { window.location.href = url; } catch (e0) {} return; }
     var w = null;
     try { w = window.open(url, '_blank'); if (w) try { w.opener = null; } catch (e2) {} } catch (e) {}
     if (!w) try { window.location.href = url; } catch (e3) {}
   }
-  function sendWA(msg, withPhoto) {
-    if (typeof window.baSendWhatsApp === 'function') {
-      window.__lastUrl = 'bridge:' + (withPhoto ? 'photo:' : '') + state.number;
-      window.baSendWhatsApp(msg, state.number, !!withPhoto);
+  /** noNumber: Chat selbst wählen (z. B. Link an Bekannte weitergeben). */
+  function sendWA(msg, withPhoto, noNumber) {
+    var num = noNumber ? '' : effNumber();
+    if (noNumber && typeof window.baSendWhatsAppAnyChat === 'function') {
+      window.__lastUrl = 'bridge:anychat';
+      window.baSendWhatsAppAnyChat(msg);
       return;
     }
-    var url = BA.buildWhatsAppUrl(msg, state.number);
+    if (typeof window.baSendWhatsApp === 'function') {
+      window.__lastUrl = 'bridge:' + (withPhoto ? 'photo:' : '') + num;
+      window.baSendWhatsApp(msg, num, !!withPhoto);
+      return;
+    }
+    var url = BA.buildWhatsAppUrl(msg, num);
     window.__lastUrl = url;
     openUrl(url);
+  }
+  /** iPhone: Dateien über das Teilen-Menü („In Dateien sichern“, WhatsApp …). Gibt true zurück, wenn geteilt wird. */
+  function shareFileIOS(name, mime, data) {
+    if (!IS_IOS || typeof navigator.share !== 'function' || typeof navigator.canShare !== 'function' || typeof File !== 'function') return false;
+    var f;
+    try { f = new File([data], name, { type: mime }); } catch (e) { return false; }
+    try { if (!navigator.canShare({ files: [f] })) return false; } catch (e) { return false; }
+    navigator.share({ files: [f], title: name }).then(function () { toast('Datei: ' + name); }, function (err) {
+      if (err && err.name === 'AbortError') return; // abgebrochen
+      blobDownload(name, mime, data);
+    });
+    return true;
+  }
+  function blobDownload(name, mime, data) {
+    var blob = new Blob([data], { type: mime });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { try { URL.revokeObjectURL(a.href); } catch (e) {} }, 60000);
+    toast('Datei gespeichert: ' + name);
   }
   function downloadBytes(name, mime, u8) {
     if (typeof window.baSaveBytes === 'function') {
@@ -188,13 +235,7 @@
       } catch (e) { toast('Speichern hat nicht geklappt.'); return Promise.resolve(); }
     }
     try {
-      var blob = new Blob([u8], { type: mime || 'application/pdf' });
-      var a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = name;
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(function () { try { URL.revokeObjectURL(a.href); } catch (e) {} }, 2000);
-      toast('Datei: ' + name);
+      if (!shareFileIOS(name, mime || 'application/pdf', u8)) blobDownload(name, mime || 'application/pdf', u8);
     } catch (e) { toast('PDF konnte nicht gespeichert werden.'); }
     return Promise.resolve();
   }
@@ -218,13 +259,10 @@
         }, function () { toast('Speichern hat nicht geklappt.'); });
       } catch (e) { toast('Speichern hat nicht geklappt.'); return Promise.resolve(); }
     }
-    var blob = new Blob([text], { type: mime });
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = name;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(function () { try { URL.revokeObjectURL(a.href); } catch (e) {} }, 2000);
-    toast('Datei: ' + name);
+    try {
+      // .ics nicht teilen: Safari öffnet Kalender-Dateien direkt im Kalender.
+      if (/\.ics$/.test(name) || !shareFileIOS(name, mime, text)) blobDownload(name, mime, text);
+    } catch (e) { toast('Speichern hat nicht geklappt.'); }
     return Promise.resolve();
   }
   function copyText(t) {
@@ -269,6 +307,7 @@
   function show(id) {
     document.querySelectorAll('.screen').forEach(function (s) { s.hidden = true; });
     var el = $(id); if (!el) return;
+    if (id === 's-helfer') refreshHelfer(); // 2.3.0: Zähler immer aktuell (auch nach „Zurück“)
     el.hidden = false;
     state.prev = state.screen; state.screen = id;
     var ti = TITLES[id] || TITLES['s-start'];
@@ -290,7 +329,7 @@
     if (s === 's-anliegen-edit') return show('s-anliegen');
     if (s === 's-idee-edit') return show('s-ideen');
     if (s === 's-termin-edit') return show('s-termine');
-    if (s === 's-anliegen' || s === 's-ideen' || s === 's-termine' || s === 's-summary' || s === 's-backup' || s === 's-pdf' || s === 's-ki') return show('s-helfer');
+    if (s === 's-anliegen' || s === 's-ideen' || s === 's-termine' || s === 's-summary' || s === 's-backup' || s === 's-pdf' || s === 's-ki' || s === 's-link') return show('s-helfer');
     goHome();
   }
   function setMode(m) {
@@ -303,7 +342,18 @@
   function showTarget() {
     $('target').textContent = state.number
       ? 'Nachricht geht an Hajos Nummer +' + state.number + '  (ändern: ⚙)'
-      : 'Keine Nummer eingestellt: Beim Senden wählen Sie den Chat in WhatsApp selbst aus. (Nummer: ⚙)';
+      : state.linkNumber
+        ? 'Nachricht geht an Hajo Bönke: +' + state.linkNumber + ' (Nummer aus Hajos Link)'
+        : 'Keine Nummer eingestellt: Beim Senden wählen Sie den Chat in WhatsApp selbst aus. (Nummer: ⚙)';
+  }
+  function updateCounter() {
+    var n = $('text').value.length;
+    $('textCount').textContent = n + ' von ' + BA.MAX_TEXT + ' Zeichen' + (n >= BA.MAX_TEXT ? ' – mehr geht nicht' : '');
+    $('textCount').className = 'counter' + (n > BA.MAX_TEXT - 200 ? ' near' : '');
+  }
+  function updateNotfall() {
+    var d = document.querySelector('input[name="dring"]:checked');
+    $('notfall').hidden = !(d && d.value === 'dringend');
   }
   function clearForm() {
     $('text').value = ''; $('name').value = ''; $('ort').value = '';
@@ -314,6 +364,8 @@
     $('error').hidden = true; $('consentError').hidden = true;
     clearLoc(); clearPhoto();
     $('after').hidden = true;
+    state.lastMsg = null;
+    updateCounter(); updateNotfall();
   }
   function clearLoc() {
     state.loc = null;
@@ -343,11 +395,13 @@
   window.BA_onPhoto = function (ok, thumb, msg) {
     if (!ok) { if (msg) toast(msg); return; }
     state.photo = { thumb: thumb || '' };
+    $('after').hidden = true;
     if (thumb && /^data:image\/jpeg;base64,/.test(thumb)) $('photoThumb').src = thumb; else $('photoThumb').removeAttribute('src');
     $('photoInfo').hidden = false;
   };
   window.BA_back = function () {
     if (!$('modal').hidden) { $('modalNo').click(); return true; }
+    if (!$('kiConsent').hidden) { $('kiConsentNo').click(); return true; }
     var s = state.screen;
     var root = s === 's-start' || (s === 's-buerger' && state.mode === 'buerger') || (s === 's-helfer' && state.mode === 'helfer');
     if (root) return false;
@@ -377,6 +431,7 @@
     // Foto nur, wenn die Android/Windows-Brücke einen Share-Intent bietet; im Browser deaktiviert (wa.me kann kein Bild).
     if (typeof window.baPickPhoto === 'function' && typeof window.baSendWhatsApp === 'function') {
       $('photoBox').hidden = false;
+      $('photoTip').hidden = true;
     }
   }
   function onSend(ev) {
@@ -395,8 +450,18 @@
       name: $('name').value, ort: $('ort').value, text: text,
       standort: state.loc, foto: !!state.photo
     });
-    sendWA(msg, !!state.photo);
+    state.lastMsg = { msg: msg, photo: !!state.photo };
+    // Anzeige „Wie geht es weiter?“ zuerst, dann WhatsApp öffnen (auf dem Handy verlässt der Tab evtl. die Seite).
+    $('afterStep1').innerHTML = '';
+    $('afterStep1').appendChild(document.createTextNode(effNumber()
+      ? 'WhatsApp ist jetzt offen. Tippen Sie dort auf '
+      : 'WhatsApp ist jetzt offen. Wählen Sie den Chat mit Hajo Bönke. Dann tippen Sie auf '));
+    var b = document.createElement('strong'); b.textContent = 'Senden'; $('afterStep1').appendChild(b);
+    $('afterStep1').appendChild(document.createTextNode(' (➤).'));
+    $('afterPhoto').hidden = !!state.photo || !$('photoBox').hidden;
     $('after').hidden = false;
+    try { $('after').scrollIntoView({ block: 'center' }); $('afterTitle').focus({ preventScroll: true }); } catch (e) {}
+    sendWA(msg, !!state.photo);
   }
 
   // ---- Helfer: Listen
@@ -411,16 +476,23 @@
     var ot = d.termine.filter(function (t) { return !t.erledigt; }).length;
     $('cntTermine').textContent = ot ? ot + ' offen' : (d.termine.length ? d.termine.length + ' gesamt' : 'noch keine');
     $('storeWarn').hidden = !!state.canStore;
+    var rb = BA.backupReminder(d);
+    $('bkRemind').hidden = rb.level !== 'due';
+    $('bkRemindText').textContent = rb.text + (IS_IOS && rb.level === 'due' ? ' Auf dem iPhone kann Safari Daten löschen, wenn die Seite länger nicht geöffnet wird.' : '');
     refreshKiTile();
   }
   function renderAnliegen() {
-    var list = BA.filterAnliegen(state.data.anliegen, { thema: $('fThema').value, status: $('fStatus').value });
+    var f = { thema: $('fThema').value, status: $('fStatus').value, q: $('fSuche').value };
+    var list = BA.filterAnliegen(state.data.anliegen, f);
+    var total = state.data.anliegen.length, filtered = !!(f.thema || f.status || BA.cleanLine(f.q));
     var ul = $('anliegenList'); ul.innerHTML = '';
     $('anliegenEmpty').hidden = list.length > 0;
+    $('anliegenCount').textContent = !total ? '' : filtered ? list.length + ' von ' + total + ' Anliegen' : total + (total === 1 ? ' Anliegen' : ' Anliegen');
+    $('fReset').hidden = !filtered;
     if (!list.length) {
-      $('anliegenEmpty').textContent = state.data.anliegen.length
-        ? 'Keine Einträge für diesen Filter. Filter zurücksetzen oder neues Anliegen anlegen.'
-        : 'Noch keine Anliegen. Tippen Sie auf „+ Neues Anliegen“.';
+      $('anliegenEmpty').textContent = total
+        ? 'Nichts gefunden. Tippen Sie auf „Filter zurücksetzen“ oder legen Sie ein neues Anliegen an.'
+        : 'Noch keine Anliegen. Tippen Sie auf „+ Neues Anliegen“. Tipp: Eine WhatsApp-Nachricht können Sie dort einfügen.';
       return;
     }
     list.forEach(function (a) {
@@ -440,6 +512,7 @@
         b.addEventListener('click', fn); act.appendChild(b);
       }
       btn('Öffnen', 'mid secondary', function () { openAnliegen(a.id); });
+      if (a.status === 'Neu') btn('In Arbeit', 'mid secondary', function () { setAnliegenStatus(a.id, 'In Arbeit'); });
       if (a.status !== 'Erledigt') btn('Erledigt', 'mid', function () { setAnliegenStatus(a.id, 'Erledigt'); });
       else btn('Wieder öffnen', 'mid secondary', function () { setAnliegenStatus(a.id, 'Neu'); });
       ul.appendChild(li);
@@ -449,7 +522,7 @@
     var a = id ? BA.findById(state.data.anliegen, id) : null;
     state.editing = a ? a.id : null;
     $('aeTitle').textContent = a ? 'Anliegen bearbeiten' : 'Neues Anliegen';
-    $('aeThema').value = a ? a.thema : BA.THEMEN[0];
+    $('aeThema').value = a ? a.thema : 'Sonstiges';
     $('aeDring').value = a ? a.dringlichkeit : 'normal';
     $('aeText').value = a ? a.text : '';
     $('aeOrt').value = a ? a.ort : '';
@@ -457,7 +530,22 @@
     $('aeStatus').value = a ? a.status : 'Neu';
     $('aeError').hidden = true;
     $('aeDelete').hidden = !a;
+    $('aePasteBox').hidden = !!a; $('aePasteBox').open = false;
+    $('aePaste').value = ''; $('aePasteMsg').hidden = true;
     show('s-anliegen-edit');
+  }
+  function pasteAnliegen() {
+    var p = BA.parseCitizenMessage($('aePaste').value);
+    if (!p.ok) { $('aePasteMsg').hidden = false; $('aePasteMsg').className = 'error'; $('aePasteMsg').textContent = 'Bitte zuerst eine Nachricht einfügen.'; return; }
+    var f = BA.anliegenFromMessage(p);
+    $('aeThema').value = f.thema; $('aeDring').value = f.dringlichkeit; $('aeText').value = f.text;
+    if (f.ort) $('aeOrt').value = f.ort;
+    if (f.kontakt) $('aeKontakt').value = f.kontakt;
+    $('aeError').hidden = true;
+    $('aePasteMsg').hidden = false; $('aePasteMsg').className = 'ok';
+    $('aePasteMsg').textContent = p.format ? 'Felder ausgefüllt. Bitte kurz prüfen und speichern.' : 'Text übernommen. Bitte Thema wählen und speichern.';
+    $('aePasteBox').open = false;
+    try { $('aeThema').focus(); } catch (e) {}
   }
   function saveAnliegen() {
     if (BA.isTextEmpty($('aeText').value)) { $('aeError').hidden = false; return; }
@@ -482,7 +570,7 @@
   function setAnliegenStatus(id, st) {
     var a = BA.findById(state.data.anliegen, id); if (!a) return;
     state.data.anliegen = BA.upsert(state.data.anliegen, BA.withStatus(a, st, now()));
-    saveData().then(function () { renderAnliegen(); refreshHelfer(); toast(st === 'Erledigt' ? 'Als erledigt markiert' : 'Wieder geöffnet'); });
+    saveData().then(function () { renderAnliegen(); refreshHelfer(); toast(st === 'Erledigt' ? 'Als erledigt markiert' : st === 'In Arbeit' ? 'Status: In Arbeit' : 'Wieder geöffnet'); });
   }
   function deleteAnliegen() {
     confirmDlg('Dieses Anliegen wirklich löschen?').then(function (ok) {
@@ -649,6 +737,30 @@
     show('s-summary');
   }
 
+  // ---- Bürger-Link & QR-Code (2.3.0)
+  function currentCitizenLink() {
+    var withNum = $('linkNum').checked && !!state.number;
+    return BA.buildCitizenLink(BA.citizenBase(location.href), withNum ? state.number : '');
+  }
+  function renderLink() {
+    var has = !!state.number;
+    $('linkNum').disabled = !has;
+    if (!has) $('linkNum').checked = false;
+    $('linkNumInfo').textContent = has
+      ? ($('linkNum').checked ? 'Die Nummer +' + state.number + ' steht sichtbar im Link und im QR-Code. Nur mit Hajos Zustimmung weitergeben.'
+        : 'Ohne Nummer wählen Bürger den Chat mit Hajo in WhatsApp selbst aus.')
+      : 'Noch keine Nummer gespeichert. Hajos Nummer unter ⚙ Einstellungen eintragen, dann hier den Haken setzen.';
+    var link = currentCitizenLink();
+    $('linkText').textContent = link;
+    var box = $('qrCode'); box.innerHTML = '';
+    var svg = window.BAQr && BAQr.svg(link);
+    if (svg) box.appendChild(svg); else box.textContent = 'QR-Code konnte nicht erstellt werden.';
+  }
+  function openLinkScreen() {
+    try { $('linkNum').checked = localStorage.getItem(KEY_LINK_NUM) === '1'; } catch (e) {}
+    renderLink();
+  }
+
   // ---- Einstellungen / Backup
   function openSettings() {
     $('number').value = state.number ? '+' + state.number : '';
@@ -656,6 +768,8 @@
     $('modeNow').textContent = state.mode === 'buerger' ? 'Aktuell: Anliegen senden (Bürger)'
       : state.mode === 'helfer' ? 'Aktuell: Helfer-Bereich' : 'Noch kein Modus gewählt';
     $('ver').textContent = BA.VERSION;
+    $('linkNumHint').hidden = !(state.linkNumber && !state.number);
+    $('linkNumHint').textContent = 'Zurzeit wird die Nummer aus Hajos Link benutzt: +' + state.linkNumber + '. Sie wird nicht gespeichert.';
     fillKiSettings();
     show('s-settings');
   }
@@ -742,11 +856,13 @@
       store.setNum('').then(function () { $('numOk').hidden = false; $('numOk').textContent = 'Nummer gelöscht.'; $('numError').hidden = true; showTarget(); });
     });
 
-    $('text').addEventListener('input', function () { if (!BA.isTextEmpty(this.value)) $('error').hidden = true; });
+    $('text').addEventListener('input', function () { if (!BA.isTextEmpty(this.value)) $('error').hidden = true; updateCounter(); });
+    document.querySelectorAll('input[name="dring"]').forEach(function (r) { r.addEventListener('change', updateNotfall); });
+    $('again').addEventListener('click', function () { if (state.lastMsg) sendWA(state.lastMsg.msg, state.lastMsg.photo); });
     $('consent').addEventListener('change', function () { if (this.checked) $('consentError').hidden = true; });
     $('form').addEventListener('submit', onSend);
     $('clear').addEventListener('click', clearForm);
-    $('keep').addEventListener('click', function () { $('after').hidden = true; });
+    $('keep').addEventListener('click', function () { $('after').hidden = true; try { $('text').focus(); } catch (e) {} });
     $('locBtn').addEventListener('click', attachLoc);
     $('locDel').addEventListener('click', clearLoc);
     $('photoBtn').addEventListener('click', function () {
@@ -764,11 +880,26 @@
         else if (id === 's-summary') showSummary();
         else if (id === 's-pdf') { openPdfScreen(); show(id); }
         else if (id === 's-ki') { openKiScreen(); show(id); }
+        else if (id === 's-link') { openLinkScreen(); show(id); }
         else show(id);
       });
     });
     $('fThema').addEventListener('change', renderAnliegen);
     $('fStatus').addEventListener('change', renderAnliegen);
+    $('fSuche').addEventListener('input', renderAnliegen);
+    $('fReset').addEventListener('click', function () { $('fSuche').value = ''; $('fThema').value = ''; $('fStatus').value = ''; renderAnliegen(); });
+    $('aePasteGo').addEventListener('click', pasteAnliegen);
+    $('bkRemindGo').addEventListener('click', function () { show('s-backup'); });
+    $('linkNum').addEventListener('change', function () {
+      try { localStorage.setItem(KEY_LINK_NUM, this.checked ? '1' : '0'); } catch (e) {}
+      renderLink();
+    });
+    $('linkCopy').addEventListener('click', function () { copyText(currentCitizenLink()); });
+    $('linkShare').addEventListener('click', function () {
+      sendWA('Haben Sie ein Anliegen für Bad Pyrmont? Schreiben Sie Hajo Bönke (SPD) ganz einfach per WhatsApp: ' + currentCitizenLink(), false, true);
+    });
+    $('linkOpen').addEventListener('click', function () { openUrl(currentCitizenLink()); });
+    $('linkPdf').addEventListener('click', function () { makePdfAndSave(BA.pdfAushang(currentCitizenLink()), 'aushang'); });
     $('newAnliegen').addEventListener('click', function () { openAnliegen(null); });
     $('aeSave').addEventListener('click', saveAnliegen);
     $('aeDelete').addEventListener('click', deleteAnliegen);
@@ -800,7 +931,13 @@
 
     $('bkExport').addEventListener('click', function () {
       var name = 'buergeranliegen-sicherung-' + BA.localDate(Date.now()) + '.json';
-      download(name, 'application/json;charset=utf-8', BA.makeBackup(state.data, now()));
+      download(name, 'application/json;charset=utf-8', BA.makeBackup(state.data, now())).then(function () {
+        state.data.lastBackup = now();
+        return saveData();
+      }).then(function () {
+        $('bkStatus').hidden = false; $('bkStatus').textContent = 'Sicherung erstellt: ' + name + '. Bitte gut aufbewahren (z. B. in „Dateien“ oder per E-Mail an sich selbst).';
+        $('bkError').hidden = true;
+      });
     });
     $('bkImportBtn').addEventListener('click', function () { $('bkFile').click(); });
     $('bkFile').addEventListener('change', function () { doImport(this.files && this.files[0]); this.value = ''; });
@@ -830,7 +967,7 @@
       var id = $('pdfIdeeSel').value;
       var idee = BA.findById(state.data.ideen, id) || BA.VORLAGEN.filter(function (v) { return v.id === id; })[0];
       if (!idee) { toast('Bitte eine Idee wählen.'); return; }
-      makePdfAndSave(BA.pdfIdeeFlyer(idee, { number: state.number }), 'infoblatt');
+      makePdfAndSave(BA.pdfIdeeFlyer(idee, { number: state.number, link: BA.buildCitizenLink(BA.citizenBase(location.href), state.number) }), 'infoblatt');
     });
     // KI settings
     if ($('saveKi')) $('saveKi').addEventListener('click', function () {
@@ -1024,7 +1161,16 @@
     // localStorage-Probe
     try { localStorage.setItem('__ba_probe', '1'); localStorage.removeItem('__ba_probe'); state.canStore = true; }
     catch (e) { state.canStore = typeof window.baSaveData === 'function'; }
-    showTarget();
+    // 2.3.0: Bürger-Link (?modus=buerger&an=…) – öffnet direkt „Anliegen senden“. Nummer nur für diesen Besuch.
+    var lp = BA.parseLinkParams(location.search);
+    if (lp.number) state.linkNumber = lp.number;
+    if (lp.buerger) {
+      if (!state.mode) { state.mode = 'buerger'; setMode('buerger'); }
+      showTarget(); updateCounter();
+      show('s-buerger');
+      return;
+    }
+    showTarget(); updateCounter();
     if (state.mode === 'buerger') show('s-buerger');
     else if (state.mode === 'helfer') { refreshHelfer(); show('s-helfer'); }
     else show('s-start');

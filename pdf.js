@@ -1,4 +1,5 @@
-/* Bürger-Anliegen 2.1.0 – PDF-Ausgabe mit gebündeltem jsPDF (MIT, vendor/, kein CDN). Offline. */
+/* Bürger-Anliegen 2.3.0 – PDF-Ausgabe mit gebündeltem jsPDF (MIT, vendor/, kein CDN). Offline.
+   2.3.0: Block 'qr' zeichnet einen QR-Code als Vektor (qr.js / vendor/qrcode.js, lokal). */
 (function (root) {
   'use strict';
   var BA = root.BA;
@@ -57,6 +58,24 @@
           pdf.roundedRect(M, y, TW, h, 3, 3, 'FD'); pdf.setTextColor(0);
           lines.forEach(function (ln, i) { pdf.text(ln, M + 5, y + 9 + i * 6.5); });
           y += h + 4; break;
+        }
+        case 'qr': {
+          var Q = root.BAQr && root.BAQr.matrix(b.v);
+          if (!Q) { para(b.v, 11, 'normal', null, 0, 3); break; }
+          var side = Math.min(b.size || 60, TW), cell = side / (Q.size + 8);
+          ensure(side + 4);
+          var x0 = M + (TW - side) / 2, y0 = y;
+          pdf.setFillColor(255, 255, 255); pdf.rect(x0, y0, side, side, 'F');
+          pdf.setFillColor(0, 0, 0);
+          for (var r = 0; r < Q.size; r++) {
+            for (var c = 0; c < Q.size; c++) {
+              if (!Q.dark(r, c)) continue;
+              var c2 = c; while (c2 + 1 < Q.size && Q.dark(r, c2 + 1)) c2++;
+              pdf.rect(x0 + (c + 4) * cell, y0 + (r + 4) * cell, (c2 - c + 1) * cell + 0.01, cell + 0.01, 'F');
+              c = c2;
+            }
+          }
+          y += side + 4; break;
         }
         case 'space': y += 6; break;
         default: para(b.v, 11, 'normal', null, 0, 3);

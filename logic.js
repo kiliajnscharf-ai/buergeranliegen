@@ -1,9 +1,11 @@
-/* Bürger-Anliegen Bad Pyrmont 2.2.0 – reine Logik (ohne DOM), auch in Node testbar.
+/* Bürger-Anliegen Bad Pyrmont 2.3.0 – reine Logik (ohne DOM), auch in Node testbar.
    Gleiche Regeln wie AnliegenLogic.java (Android). Keine Netzwerk-Zugriffe. */
 (function (root) {
   'use strict';
 
-  var VERSION = '2.2.0';
+  var VERSION = '2.3.0';
+  // Öffentliche Web-Adresse (für den Bürger-Link / QR-Code). Keine Nummer, kein Schlüssel.
+  var PUBLIC_URL = 'https://kiliajnscharf-ai.github.io/buergeranliegen/';
   var HEADER = 'Anliegen für Hajo Bönke (SPD Bad Pyrmont)';
   var THEMEN = ['Straße & Wege', 'Verkehr & Parken', 'Schule & Kita', 'Umwelt & Grün', 'Sauberkeit',
     'Soziales & Senioren', 'Jugend & Sport', 'Wirtschaft & Tourismus', 'Sonstiges'];
@@ -112,7 +114,85 @@
   function isAllowedExternal(url) {
     return typeof url === 'string' && !/[\s"<>\\]/.test(url) &&
       (url.indexOf('https://wa.me/') === 0 || url.indexOf('https://www.openstreetmap.org/') === 0 ||
-       url.indexOf('https://aistudio.google.com/') === 0);
+       url.indexOf('https://aistudio.google.com/') === 0 || url.indexOf(PUBLIC_URL) === 0);
+  }
+
+  // ------------------------------------------------------------ 2.3.0: Bürger-Link (QR-Code) mit optionaler Nummer
+  /** Basis-Adresse für den Bürger-Link: eigene http(s)-Adresse (nicht localhost), sonst die öffentliche Seite. */
+  function citizenBase(href) {
+    var m = /^(https?:\/\/([^\/?#:]+)(?::\d+)?)(\/[^?#]*)?/.exec(String(href || ''));
+    if (!m) return PUBLIC_URL;
+    var host = m[2].toLowerCase();
+    if (host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || /^(10|192\.168)\./.test(host)) return PUBLIC_URL;
+    var path = (m[3] || '/').replace(/index\.html?$/i, '');
+    if (path.charAt(path.length - 1) !== '/') path += '/';
+    if (/[\s"<>\\]/.test(m[1] + path)) return PUBLIC_URL;
+    return m[1] + path;
+  }
+  /** Link für Bürgerinnen und Bürger. Nummer nur, wenn gültig und ausdrücklich gewünscht. */
+  function buildCitizenLink(base, number) {
+    var b = String(base || PUBLIC_URL).split(/[?#]/)[0];
+    if (!/^https?:\/\//.test(b)) b = PUBLIC_URL;
+    var n = number ? normalizeStrict(number) : null;
+    return b + '?modus=buerger' + (n ? '&an=' + n : '');
+  }
+  /** Liest ?modus=buerger und ?an=<Nummer> aus der Adresse. Ungültige Werte werden ignoriert. */
+  function parseLinkParams(search) {
+    var out = { buerger: false, number: '' };
+    String(search || '').replace(/^[?#]/, '').split('&').forEach(function (kv) {
+      var i = kv.indexOf('='), k = i < 0 ? kv : kv.slice(0, i), v = i < 0 ? '' : kv.slice(i + 1);
+      try { k = decodeURIComponent(k); v = decodeURIComponent(v.replace(/\+/g, ' ')); } catch (e) { return; }
+      if (k === 'modus' && v === 'buerger') out.buerger = true;
+      if (k === 'an' && v.length <= 30) { var n = normalizeStrict(v); if (n) { out.number = n; out.buerger = true; } }
+    });
+    return out;
+  }
+  /** "+491701234567" für die Anzeige. */
+  function displayNumber(n) {
+    n = String(n || '');
+    return n ? '+' + n : '';
+  }
+
+  // ------------------------------------------------------------ 2.3.0: WhatsApp-Nachricht übernehmen (Helfer)
+  /** Liest eine Bürger-Nachricht (Format von buildMessage) aus kopiertem WhatsApp-Text. */
+  function parseCitizenMessage(raw) {
+    var t = String(raw == null ? '' : raw).replace(/\r\n?/g, '\n');
+    // WhatsApp-Kopie mehrerer Nachrichten: "[29.09.26, 10:15] Maria: ..." vorne entfernen
+    t = t.replace(/^\s*\[[^\]\n]{4,40}\]\s*[^:\n]{1,60}:\s*/, '');
+    var res = { ok: false, art: 'Anliegen', thema: '', dringlichkeit: '', name: '', ort: '', standort: '', foto: false, text: '' };
+    var lines = t.split('\n');
+    var h = -1;
+    for (var i = 0; i < lines.length && i < 5; i++) if (cleanLine(lines[i]).indexOf(HEADER) >= 0) { h = i; break; }
+    if (h < 0) { res.text = clip(cleanText(t), MAX_TEXT); res.ok = !!res.text; res.format = false; return res; }
+    var j = h + 1;
+    for (; j < lines.length; j++) {
+      var l = cleanLine(lines[j]);
+      if (!l) { j++; break; }
+      var m = /^(Art|Thema|Dringlichkeit|Name|Ort|Standort|Foto):\s*(.*)$/.exec(l);
+      if (!m) break;
+      var k = m[1], v = cleanLine(m[2]);
+      if (k === 'Art') res.art = v === 'Idee' ? 'Idee' : 'Anliegen';
+      else if (k === 'Thema') res.thema = THEMEN.indexOf(v) >= 0 ? v : '';
+      else if (k === 'Dringlichkeit') res.dringlichkeit = DRINGLICHKEIT.indexOf(v) >= 0 ? v : '';
+      else if (k === 'Name') res.name = clip(v, MAX_SHORT);
+      else if (k === 'Ort') res.ort = clip(v, MAX_SHORT);
+      else if (k === 'Standort') { var u = /https:\/\/www\.openstreetmap\.org\/\S+/.exec(v); res.standort = u ? u[0] : ''; }
+      else if (k === 'Foto') res.foto = true;
+    }
+    res.text = clip(cleanText(lines.slice(j).join('\n')), MAX_TEXT);
+    res.format = true;
+    res.ok = !!(res.text || res.thema || res.ort);
+    return res;
+  }
+  /** Macht aus der gelesenen Nachricht Felder für ein Helfer-Anliegen. */
+  function anliegenFromMessage(p) {
+    var extra = [];
+    if (p.standort) extra.push('Standort: ' + p.standort);
+    if (p.foto) extra.push('Foto: in WhatsApp');
+    var text = (p.art === 'Idee' ? 'Idee: ' : '') + (p.text || '');
+    if (extra.length) text = cleanText(text) + '\n\n' + extra.join('\n');
+    return { thema: p.thema || 'Sonstiges', dringlichkeit: p.dringlichkeit || 'normal', ort: p.ort || '',
+      kontakt: p.name || '', text: clip(cleanText(text), MAX_TEXT), status: 'Neu' };
   }
 
   // ------------------------------------------------------------ Datum
@@ -137,7 +217,7 @@
     seq = (seq + 1) % 1296;
     return (prefix || 'x') + (now || Date.now()).toString(36) + seq.toString(36) + Math.floor(Math.random() * 1e6).toString(36);
   }
-  function emptyData() { return { version: 2, mode: '', anliegen: [], ideen: [], termine: [] }; }
+  function emptyData() { return { version: 2, mode: '', anliegen: [], ideen: [], termine: [], lastBackup: '' }; }
   function pick(v, list, def) { return list.indexOf(v) >= 0 ? v : def; }
 
   function sanitizeAnliegen(a, nowIso) {
@@ -213,6 +293,7 @@
     d.anliegen = sanitizeList(raw.anliegen, sanitizeAnliegen, nowIso);
     d.ideen = sanitizeList(raw.ideen, sanitizeIdee, nowIso);
     d.termine = sanitizeList(raw.termine, sanitizeTermin, nowIso);
+    d.lastBackup = isoOk(raw.lastBackup) ? raw.lastBackup : '';
     return d;
   }
   function parseData(text, nowIso) {
@@ -242,7 +323,9 @@
   }
   function filterAnliegen(list, f) {
     f = f || {};
+    var q = cleanLine(f.q || '').toLowerCase();
     var out = list.filter(function (a) {
+      if (q && (a.text + ' ' + a.ort + ' ' + a.thema + ' ' + a.kontakt).toLowerCase().indexOf(q) < 0) return false;
       return (!f.thema || a.thema === f.thema) && (!f.status || a.status === f.status);
     });
     return out.sort(function (x, y) {
@@ -444,6 +527,22 @@
     return L.join('\n');
   }
 
+
+  // ------------------------------------------------------------ 2.3.0: Sicherungs-Erinnerung
+  var BACKUP_DAYS = 14;
+  /** level: 'none' (keine Daten), 'ok', 'due' (nie oder älter als 14 Tage). */
+  function backupReminder(data, nowMs) {
+    nowMs = nowMs || Date.now();
+    var n = (data.anliegen || []).length + (data.ideen || []).length + (data.termine || []).length;
+    if (!n) return { level: 'none', text: '' };
+    var t = Date.parse(data.lastBackup || '');
+    if (isNaN(t)) return { level: 'due', days: -1, text: 'Noch keine Sicherung gemacht. Bitte jetzt sichern.' };
+    var days = Math.max(0, Math.floor((nowMs - t) / DAY));
+    var when = days === 0 ? 'heute' : days === 1 ? 'gestern' : 'vor ' + days + ' Tagen';
+    var txt = 'Letzte Sicherung: ' + stampDE(data.lastBackup) + ' (' + when + ').';
+    if (days >= BACKUP_DAYS) return { level: 'due', days: days, text: txt + ' Bitte wieder sichern.' };
+    return { level: 'ok', days: days, text: txt };
+  }
 
   // ------------------------------------------------------------ KI: Anonymisierung (vor jedem Senden)
   // Häufige Vornamen (für "Vorname Nachname" ohne Anrede). Rest über Anrede/Hinweiswörter.
@@ -857,7 +956,25 @@
     B.push({ t: 'space' });
     var kontakt = 'Ihr Anliegen oder Ihre Idee? Schreiben Sie Hajo Bönke per WhatsApp' + (o.number ? ': +' + o.number : '.');
     B.push({ t: 'box', v: kontakt });
+    if (o.link) { B.push({ t: 'qr', v: o.link, size: 45 }); B.push({ t: 'meta', v: 'QR-Code scannen: ' + o.link }); }
     return pdfDoc('Infoblatt', 'Hajo Bönke · SPD Bad Pyrmont', B, o);
+  }
+  /** Aushang / Handzettel mit QR-Code zum Bürger-Link. */
+  function pdfAushang(link, o) {
+    o = o || {};
+    var B = [
+      { t: 'big', v: 'Ihr Anliegen für Bad Pyrmont' },
+      { t: 'lead', v: 'Schreiben Sie Hajo Bönke (SPD) direkt per WhatsApp: ein Problem, eine Frage oder eine gute Idee.' },
+      { t: 'qr', v: link, size: 85 },
+      { t: 'h2', v: 'So geht es' },
+      { t: 'lead', v: '1. QR-Code mit der Handy-Kamera scannen.' },
+      { t: 'lead', v: '2. Anliegen eintippen. Name und Ort sind freiwillig.' },
+      { t: 'lead', v: '3. Auf „Per WhatsApp an Hajo senden“ tippen.' },
+      { t: 'space' },
+      { t: 'box', v: 'Kostenlos · keine App nötig · nichts wird gespeichert' },
+      { t: 'meta', v: 'Link: ' + link }
+    ];
+    return pdfDoc('Aushang: Anliegen an Hajo Bönke', 'Hajo Bönke · SPD Bad Pyrmont', B, o);
   }
   function pdfKiErgebnis(title, text, sources, o) {
     o = o || {};
@@ -889,7 +1006,10 @@
   }
 
   var api = {
-    VERSION: VERSION, HEADER: HEADER, THEMEN: THEMEN, DRINGLICHKEIT: DRINGLICHKEIT, STATUS: STATUS,
+    VERSION: VERSION, PUBLIC_URL: PUBLIC_URL, HEADER: HEADER,
+    citizenBase: citizenBase, buildCitizenLink: buildCitizenLink, parseLinkParams: parseLinkParams, displayNumber: displayNumber,
+    parseCitizenMessage: parseCitizenMessage, anliegenFromMessage: anliegenFromMessage, backupReminder: backupReminder,
+    BACKUP_DAYS: BACKUP_DAYS, pdfAushang: pdfAushang, THEMEN: THEMEN, DRINGLICHKEIT: DRINGLICHKEIT, STATUS: STATUS,
     MAX_TEXT: MAX_TEXT, MAX_SHORT: MAX_SHORT, CHECKLISTEN: CHECKLISTEN, VORLAGEN: VORLAGEN,
     cleanText: cleanText, cleanLine: cleanLine, isTextEmpty: isTextEmpty,
     normalizeNumber: normalizeNumber, normalizeStrict: normalizeStrict, validateNumber: validateNumber,

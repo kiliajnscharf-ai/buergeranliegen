@@ -104,3 +104,51 @@ fieldset.seg legend{font-weight:700;margin-bottom:6px;padding:0;width:100%}
 .row.wrap>.mid{flex:1 1 calc(50% - 10px);min-width:140px}
 .model-used{font-weight:700;color:#333;background:#f2f2f2;border-radius:10px;padding:6px 10px;display:inline-block}
 .model-used[hidden]{display:none}
+
+/* 2.3.0: Zähler, QR-Code, größere Tipp-Flächen, iPhone-Datumsfelder, Dialog-Zeilen, dunkles Design */
+:root{color-scheme:light dark}
+.counter{margin:4px 2px 0;color:#555;font-size:.85em;text-align:right}
+.counter.near{color:#b0000c;font-weight:700}
+.link{min-height:48px;padding:10px 12px}
+.checklist .x{min-width:44px;min-height:44px}
+#modalText,#kiConsentText{white-space:pre-line}
+input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;min-height:56px;display:block;text-align:left}
+input::-webkit-date-and-time-value{text-align:left}
+input[type=search]{width:100%;font:inherit;padding:14px;border:2px solid #999;border-radius:10px;background:#fff;-webkit-appearance:none;appearance:none}
+.after h2{margin-top:0}
+.after h2:focus{outline:none}
+.warn p{margin:0 0 8px}
+.qrbox{display:flex;justify-content:center;margin:12px 0}
+.qr{width:min(280px,80vw);background:#fff;padding:0;border-radius:12px;border:2px solid #ddd;line-height:0}
+.qr svg{width:100%;height:auto;display:block}
+.linkout{text-align:center;font-size:.9em;background:#fff;border:1px solid #ddd;border-radius:10px;padding:10px;word-break:break-all}
+@media (prefers-color-scheme:dark){
+  body{background:#121212;color:#ececec}
+  small,.hint,.counter,.cards .meta,.version,.empty{color:#b8b8b8}
+  .lead,.info{color:#ddd}
+  .info{background:#262626}
+  input[type=text],input[type=tel],input[type=date],input[type=time],input[type=search],textarea,select{background:#1e1e1e;color:#ececec;border-color:#777}
+  .choice span{background:#1e1e1e;border-color:#777}
+  .choice input:checked+span{background:#4a0d12;color:#ffd6da;border-color:#ff5a66}
+  .secondary{background:#2a2a2a!important;color:#ececec!important;border-color:#666!important}
+  .danger{background:#1e1e1e!important;color:#ff8a93!important;border-color:#ff8a93!important}
+  .link,.sources a{color:#8ab4ff}
+  .error{background:#3d1216;color:#ffb3b9}
+  .ok{background:#0f3322;color:#9be3bd}
+  .warn{background:#332b00;border-color:#8a7400;color:#ffe58a}
+  .empty{background:#1a1a1a;border-color:#555}
+  .consent,.photoinfo,.privacy,.cards li,.tile,.checklist li,.summary,.linkout{background:#1e1e1e;border-color:#444;color:#ececec}
+  .tile.red{background:#2a1214;border-color:#ff5a66}
+  .after{background:#0f3322}
+  .modalbox{background:#1e1e1e;color:#ececec}
+  .badge{background:#333;color:#ddd}
+  .badge.dringend{background:#4a0d12;color:#ffb3b9}
+  .badge.wichtig,.badge.In{background:#3d3100;color:#ffe58a}
+  .badge.Neu{background:#0d2a52;color:#a8c7fa}
+  .badge.Erledigt{background:#0f3322;color:#9be3bd}
+  .model-used{background:#262626;color:#ddd}
+  .checklist .x{color:#ff8a93}
+  .qr{border-color:#444}
+}
+.mid.wa{background:#008069;color:#fff}
+.privacy summary{min-height:48px;display:flex;align-items:center;gap:6px}

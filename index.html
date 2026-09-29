@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self'; script-src 'self'; connect-src 'self' https://generativelanguage.googleapis.com; form-action 'none'; object-src 'none'; base-uri 'none'">
 <meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
 <title>Bürger-Anliegen Bad Pyrmont</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
@@ -55,9 +56,11 @@
       <label class="choice"><input type="radio" name="dring" value="wichtig"><span>wichtig</span></label>
       <label class="choice"><input type="radio" name="dring" value="dringend"><span>dringend</span></label>
     </fieldset>
+    <p id="notfall" class="warn" hidden><strong>Bei Gefahr sofort anrufen:</strong> Polizei <strong>110</strong>, Feuerwehr und Rettungsdienst <strong>112</strong>. Hajo kann nicht sofort helfen.</p>
 
     <label for="text">4. Ihre Nachricht <small>(Pflichtfeld)</small></label>
-    <textarea id="text" rows="6" maxlength="4000" placeholder="Was möchten Sie Hajo mitteilen?"></textarea>
+    <textarea id="text" rows="6" maxlength="4000" placeholder="Was möchten Sie Hajo mitteilen?" aria-describedby="textCount"></textarea>
+    <p id="textCount" class="counter">0 von 4000 Zeichen</p>
     <p id="error" class="error" role="alert" hidden>Bitte schreiben Sie zuerst Ihre Nachricht.</p>
 
     <label for="name">5. Name <small>(freiwillig)</small></label>
@@ -71,6 +74,7 @@
       <p id="locStatus" class="hint" role="status" hidden></p>
       <button id="locDel" type="button" class="link" hidden>Standort entfernen</button>
 
+      <p id="photoTip" class="hint">📷 Foto? Nach dem Senden in WhatsApp mit 📎 anhängen.</p>
       <div id="photoBox" hidden>
         <button id="photoBtn" type="button" class="mid secondary">📷 Foto anhängen</button>
         <div id="photoInfo" class="photoinfo" hidden>
@@ -88,10 +92,16 @@
     <button id="send" type="submit" class="big wa">Per WhatsApp an Hajo senden</button>
   </form>
 
-  <section id="after" class="after" hidden>
-    <p>WhatsApp wurde geöffnet. Bitte dort auf <strong>Senden</strong> tippen.</p>
+  <section id="after" class="after" hidden aria-labelledby="afterTitle">
+    <h2 id="afterTitle" tabindex="-1">✓ Fast geschafft – wie geht es weiter?</h2>
+    <ol class="steps">
+      <li id="afterStep1">WhatsApp ist jetzt offen. Tippen Sie dort auf <strong>Senden</strong> (➤).</li>
+      <li id="afterPhoto">Foto? In WhatsApp mit 📎 anhängen.</li>
+      <li>Hajo Bönke bekommt Ihre Nachricht direkt. Bitte haben Sie etwas Geduld mit der Antwort.</li>
+    </ol>
     <button id="clear" type="button" class="big secondary">Fertig – Formular leeren</button>
-    <button id="keep" type="button" class="link">Text behalten</button>
+    <button id="again" type="button" class="mid secondary">WhatsApp nicht aufgegangen? Nochmal öffnen</button>
+    <button id="keep" type="button" class="link">Text behalten und ändern</button>
   </section>
 
   <details class="privacy">
@@ -118,6 +128,7 @@
     <button id="delNum" type="button" class="mid secondary">Löschen</button>
   </div>
   <p class="hint">Ohne Nummer wählen Sie den Chat in WhatsApp selbst aus. Die Nummer wird nur auf diesem Gerät gespeichert.</p>
+  <p id="linkNumHint" class="info" hidden></p>
 
   <h2>Modus</h2>
   <p id="modeNow" class="info"></p>
@@ -159,18 +170,34 @@
       Ist das Tageslimit erreicht, sagt die App Bescheid.</p>
   </details>
   </div>
-  <p class="version">Bürger-Anliegen Bad Pyrmont · Version <span id="ver">2.2.0</span><br>Kostenlos · ohne Werbung · ohne Tracking</p>
+  <details class="privacy" id="storeInfo">
+    <summary>🔒 Was wird wo gespeichert?</summary>
+    <ul>
+      <li>Alles bleibt <strong>nur auf diesem Gerät</strong>: Hajos Nummer, der Modus, die Helfer-Daten und der KI-Schlüssel. Es gibt keinen Server und kein Konto.</li>
+      <li>Im Browser liegen die Daten im Browser-Speicher dieser Seite. In der Android-App im App-Speicher. In der Windows-App im Ordner „data“ neben der .exe.</li>
+      <li>Bürger-Nachrichten werden <strong>nicht</strong> gespeichert. Sie gehen nur über WhatsApp an Hajo.</li>
+      <li>Die KI (nur Helfer) schickt Text an Google – erst nach Ihrem Tippen und ohne Namen und Telefonnummern.</li>
+      <li>iPhone (Safari): Safari kann Daten löschen, wenn Sie die Seite länger nicht öffnen. Bitte regelmäßig „Sicherung speichern“.</li>
+      <li>Kein Tracking, keine Werbung, keine Cookies.</li>
+    </ul>
+  </details>
+  <p class="version">Bürger-Anliegen Bad Pyrmont · Version <span id="ver">2.3.0</span><br>Kostenlos · ohne Werbung · ohne Tracking</p>
 </section>
 
 <!-- ================= Helfer: Übersicht ================= -->
 <section id="s-helfer" class="screen" hidden>
   <p class="info">Alle Daten bleiben nur auf diesem Gerät. Machen Sie ab und zu eine Sicherung.</p>
   <p id="storeWarn" class="error" hidden>Achtung: Dieser Browser kann nichts speichern. Bitte eine Sicherung machen, bevor Sie die Seite schließen.</p>
+  <div id="bkRemind" class="warn" hidden>
+    <p id="bkRemindText"></p>
+    <button id="bkRemindGo" type="button" class="mid">💾 Jetzt sichern</button>
+  </div>
   <div class="tiles">
     <button type="button" class="tile" data-go="s-anliegen"><span class="ico" aria-hidden="true">📋</span><span><strong>Anliegen</strong><br><small id="cntAnliegen"></small></span></button>
     <button type="button" class="tile" data-go="s-ideen"><span class="ico" aria-hidden="true">💡</span><span><strong>Ideen</strong><br><small id="cntIdeen"></small></span></button>
     <button type="button" class="tile" data-go="s-termine"><span class="ico" aria-hidden="true">📅</span><span><strong>Termine &amp; Aufgaben</strong><br><small id="cntTermine"></small></span></button>
-    <button type="button" class="tile" data-go="s-summary"><span class="ico" aria-hidden="true">📨</span><span><strong>Wochen-Zusammenfassung</strong><br><small>für Hajo, mit einem Tipp</small></span></button>
+    <button type="button" class="tile" data-go="s-summary"><span class="ico" aria-hidden="true">📨</span><span><strong>Wochen-Zusammenfassung</strong><br><small>fertiger Text für Hajo</small></span></button>
+    <button type="button" class="tile" data-go="s-link"><span class="ico" aria-hidden="true">🔗</span><span><strong>Bürger-Link &amp; QR-Code</strong><br><small>zum Weitergeben und Aushängen</small></span></button>
     <button type="button" class="tile" data-go="s-backup"><span class="ico" aria-hidden="true">💾</span><span><strong>Sichern &amp; Export</strong><br><small>Sicherung, Tabelle</small></span></button>
     <button type="button" class="tile" data-go="s-pdf"><span class="ico" aria-hidden="true">📄</span><span><strong>PDF erstellen</strong><br><small>Berichte, Listen, Infoblatt</small></span></button>
     <button type="button" class="tile" data-go="s-ki"><span class="ico" aria-hidden="true">✨</span><span><strong>KI-Assistent</strong><br><small id="cntKi">kostenloser Schlüssel nötig</small></span></button>
@@ -180,10 +207,14 @@
 <!-- ================= Helfer: Anliegen-Liste ================= -->
 <section id="s-anliegen" class="screen" hidden>
   <button id="newAnliegen" type="button" class="big">+ Neues Anliegen</button>
+  <label for="fSuche">Suchen</label>
+  <input id="fSuche" type="search" maxlength="80" autocomplete="off" placeholder="z. B. Laterne, Oesdorf">
   <div class="row filters">
     <label class="inl">Thema<select id="fThema"><option value="">Alle Themen</option></select></label>
     <label class="inl">Status<select id="fStatus"><option value="">Alle</option></select></label>
   </div>
+  <p id="anliegenCount" class="hint" role="status"></p>
+  <button id="fReset" type="button" class="link" hidden>Filter zurücksetzen</button>
   <p id="anliegenEmpty" class="empty" hidden></p>
   <ul id="anliegenList" class="cards"></ul>
 </section>
@@ -191,6 +222,14 @@
 <!-- ================= Helfer: Anliegen bearbeiten ================= -->
 <section id="s-anliegen-edit" class="screen" hidden>
   <h2 id="aeTitle">Neues Anliegen</h2>
+  <details id="aePasteBox" class="privacy">
+    <summary>📋 WhatsApp-Nachricht übernehmen</summary>
+    <p class="hint">Nachricht aus WhatsApp kopieren und hier einfügen. Die App füllt die Felder aus.</p>
+    <label for="aePaste">Nachricht einfügen</label>
+    <textarea id="aePaste" rows="5" maxlength="6000"></textarea>
+    <p id="aePasteMsg" class="ok" role="status" hidden></p>
+    <button id="aePasteGo" type="button" class="mid">Felder ausfüllen</button>
+  </details>
   <label for="aeThema">Thema</label>
   <select id="aeThema"></select>
   <label for="aeDring">Wie wichtig?</label>
@@ -280,6 +319,19 @@
   <pre id="summaryText" class="summary"></pre>
   <button id="sumSend" type="button" class="big wa">Per WhatsApp an Hajo senden</button>
   <button id="sumCopy" type="button" class="mid secondary">Text kopieren</button>
+</section>
+
+<!-- ================= Helfer: Bürger-Link & QR-Code (2.3.0) ================= -->
+<section id="s-link" class="screen" hidden>
+  <p class="hint">Mit diesem Link oder QR-Code öffnen Bürgerinnen und Bürger direkt „Anliegen senden“. Der QR-Code wird auf dem Gerät erstellt – ohne fremden Dienst.</p>
+  <label class="consent"><input id="linkNum" type="checkbox"><span>Hajos WhatsApp-Nummer in den Link schreiben<br><small>Dann kommt jede Nachricht direkt bei Hajo an.</small></span></label>
+  <p id="linkNumInfo" class="hint"></p>
+  <div class="qrbox"><div id="qrCode" class="qr" aria-label="QR-Code zum Bürger-Link"></div></div>
+  <p class="linkout"><span id="linkText"></span></p>
+  <button id="linkCopy" type="button" class="big">Link kopieren</button>
+  <button id="linkShare" type="button" class="mid wa">Link per WhatsApp weitergeben</button>
+  <button id="linkPdf" type="button" class="mid secondary">📄 Aushang mit QR-Code (PDF)</button>
+  <button id="linkOpen" type="button" class="mid secondary">Link testen</button>
 </section>
 
 <!-- ================= Helfer: Sichern ================= -->
@@ -402,7 +454,9 @@
 
 <script src="config.js"></script>
 <script src="vendor/jspdf.umd.min.js"></script>
+<script src="vendor/qrcode.js"></script>
 <script src="logic.js"></script>
+<script src="qr.js"></script>
 <script src="pdf.js"></script>
 <script src="ki.js"></script>
 <script src="app.js"></script>
