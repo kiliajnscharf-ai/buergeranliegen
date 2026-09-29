@@ -20,4 +20,4 @@ Einfache Browser-App für Bürgerinnen und Bürger in Bad Pyrmont, um Anliegen a
 
 Einfach die veröffentlichte Seite im Browser öffnen (auch auf dem iPhone). Keine Installation nötig.
 
-Version 2.3.0 (öffentliche Web-Version, ohne eingebauten API-Schlüssel).
+Version 2.4.0 (öffentliche Web-Version, ohne eingebauten API-Schlüssel).

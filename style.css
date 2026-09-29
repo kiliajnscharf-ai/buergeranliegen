@@ -4,7 +4,7 @@ body{margin:0;overflow-wrap:anywhere;font-family:system-ui,-apple-system,"Segoe 
 .top{background:#e3000f;color:#fff;padding:12px 10px;display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:10}
 .toptitle{flex:1;min-width:0;text-align:center}
 .top h1{margin:0;font-size:1.15em;line-height:1.2}
-.sub{margin:2px 0 0;font-size:.82em;opacity:.95}
+.sub{margin:2px 0 0;font-size:.82em;opacity:1}
 .topbtn{background:#b0000c;color:#fff;border:0;border-radius:12px;min-width:56px;min-height:52px;font:inherit;font-size:1.05em;font-weight:700;cursor:pointer;padding:0 10px}
 .topbtn.gear{font-size:1.4em;min-width:56px}
 main{max-width:640px;margin:0 auto;padding:14px 16px 48px}
@@ -38,6 +38,7 @@ fieldset.seg legend{font-weight:700;margin-bottom:6px;padding:0;width:100%}
 .inl{margin:0}
 .inl input,.inl select{margin-top:6px}
 .filters{flex-wrap:wrap}
+.filters>.inl{flex:1 1 calc(50% - 10px);min-width:140px}
 .info{background:#eee;border-radius:10px;padding:12px 14px;margin:0 0 12px;color:#333;font-size:.95em}
 .hint{color:#555;font-size:.9em;margin:8px 0}
 .error{color:#b0000c;background:#ffe8ea;border-radius:8px;padding:10px 12px;margin:8px 0;font-weight:700}
@@ -110,7 +111,7 @@ fieldset.seg legend{font-weight:700;margin-bottom:6px;padding:0;width:100%}
 .counter{margin:4px 2px 0;color:#555;font-size:.85em;text-align:right}
 .counter.near{color:#b0000c;font-weight:700}
 .link{min-height:48px;padding:10px 12px}
-.checklist .x{min-width:44px;min-height:44px}
+.checklist .x{min-width:48px;min-height:48px}
 #modalText,#kiConsentText{white-space:pre-line}
 input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;min-height:56px;display:block;text-align:left}
 input::-webkit-date-and-time-value{text-align:left}
@@ -152,3 +153,32 @@ input[type=search]{width:100%;font:inherit;padding:14px;border:2px solid #999;bo
 }
 .mid.wa{background:#008069;color:#fff}
 .privacy summary{min-height:48px;display:flex;align-items:center;gap:6px}
+
+/* 2.4.0: Einführung, Vorschau für Google, Rückgängig-Hinweis, Checklisten-Beschriftung, kleiner Helfer-Link */
+.intro{background:#fff;border:2px solid #e3000f;border-radius:12px;padding:12px 14px;margin:0 0 14px}
+.intro h3{margin:0 0 6px}
+.intro p{margin:6px 0}
+.intro .steps{margin:4px 0}
+.checklist label{flex:1;margin:0;font-weight:400;cursor:pointer}
+.link.small{font-size:.8em;font-weight:400;color:#555;margin-top:18px}
+.preview{background:#fff;border:2px solid #0b57d0;border-radius:12px;padding:12px 14px;margin:12px 0}
+.preview h2{margin-top:0}
+.preview h2:focus{outline:none}
+.prevview{max-height:40vh}
+mark{background:#fff3a0;color:#1a1a1a;border-radius:4px;padding:0 3px;font-weight:700}
+.removed{margin:6px 0 10px;padding-left:1.2em}
+.removed del{color:#b0000c;text-decoration:line-through}
+.toast.undo{display:flex;align-items:center;gap:14px;flex-wrap:nowrap;justify-content:space-between;width:min(92%,420px);text-align:left}
+.toast.undo>span,.toast.undo>#toastMsg{flex:1 1 auto;min-width:0}
+.toast.undo[hidden]{display:none}
+#toastUndo{background:#fff;color:#1a1a1a;border:0;border-radius:8px;font:inherit;font-weight:700;min-height:48px;padding:8px 14px;cursor:pointer;white-space:nowrap;flex:0 0 auto;width:auto}
+@media (prefers-color-scheme:dark){
+  .intro,.preview{background:#1e1e1e;color:#ececec}
+  .intro{border-color:#ff5a66}
+  .preview{border-color:#8ab4ff}
+  .link.small{color:#b8b8b8}
+  .removed del{color:#ff8a93}
+  .toast{background:#ececec;color:#121212}
+  #toastUndo{background:#121212;color:#fff}
+}
+.cards h2.cardh{margin:0 0 6px;font-size:1.05em}

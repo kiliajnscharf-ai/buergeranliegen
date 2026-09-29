@@ -24,22 +24,43 @@
 <!-- ================= Start: Modus wählen ================= -->
 <section id="s-start" class="screen" hidden>
   <h2 class="center">Willkommen!</h2>
+  <div id="intro" class="intro">
+    <h3>Was ist das für eine App?</h3>
+    <p>Mit dieser App schreiben Sie <strong>Hajo Bönke</strong> eine Nachricht. Hajo Bönke ist von der <strong>SPD Bad Pyrmont</strong>.</p>
+    <p>Sie können Hajo ein Problem aus Ihrem Ort sagen. Oder eine Idee.</p>
+    <p><strong>So geht es:</strong></p>
+    <ol class="steps">
+      <li>Sie schreiben Ihre Nachricht in die App.</li>
+      <li>Dann geht WhatsApp auf. Sie sehen dort Ihre Nachricht.</li>
+      <li>Sie tippen in WhatsApp auf Senden. Dann bekommt Hajo Ihre Nachricht.</li>
+      <li>Hajo liest Ihre Nachricht. Er sieht auch Ihre WhatsApp-Nummer. So kann er Ihnen antworten.</li>
+    </ol>
+    <p>Die App ist <strong>kostenlos</strong>. Sie brauchen <strong>keine Anmeldung</strong> und kein Konto. Nur WhatsApp.</p>
+  </div>
   <p class="lead center">Was möchten Sie tun?</p>
   <button id="pickBuerger" type="button" class="tile red">
     <span class="ico" aria-hidden="true">✉️</span>
-    <span><strong>Anliegen senden</strong><br><small>Für Bürgerinnen und Bürger</small></span>
+    <span><strong>Anliegen senden</strong><br><small>Für Bürgerinnen und Bürger aus ganz Bad Pyrmont</small></span>
   </button>
   <button id="pickHelfer" type="button" class="tile">
     <span class="ico" aria-hidden="true">🗂️</span>
     <span><strong>Helfer-Bereich</strong><br><small>Anliegen, Ideen und Termine für Hajo ordnen</small></span>
   </button>
-  <p class="hint center">Die App merkt sich Ihre Wahl.<br>Ändern können Sie das jederzeit unter ⚙ Einstellungen.</p>
+  <p class="hint center">Die App merkt sich Ihre Wahl.<br>Ändern können Sie das jederzeit in den Einstellungen.</p>
+  <p class="hint center">Der Helfer-Bereich ist nur für Helferinnen und Helfer von Hajo Bönke.</p>
 </section>
 
 <!-- ================= Bürger-Modus ================= -->
 <section id="s-buerger" class="screen" hidden>
   <form id="form" novalidate>
+    <div id="introForm" class="intro">
+      <p><strong>So geht es:</strong> Sie schreiben hier Ihre Nachricht. Die Nachricht geht per WhatsApp an <strong>Hajo Bönke</strong> (SPD Bad Pyrmont).</p>
+      <p>Sie sehen die Nachricht vorher in WhatsApp. Erst wenn Sie dort auf Senden tippen, wird sie verschickt.</p>
+      <p>Danach liest Hajo Ihre Nachricht. Er sieht Ihre WhatsApp-Nummer und kann Ihnen antworten.</p>
+      <p>Kostenlos. Ohne Anmeldung. Die App speichert Ihre Nachricht nicht dauerhaft.</p>
+    </div>
     <p id="target" class="info"></p>
+    <p id="gebiet" class="hint">Für das ganze Stadtgebiet Bad Pyrmont: die Kernstadt und alle Ortsteile.</p>
 
     <fieldset class="seg" id="artGroup">
       <legend>1. Was möchten Sie senden?</legend>
@@ -59,15 +80,20 @@
     <p id="notfall" class="warn" hidden><strong>Bei Gefahr sofort anrufen:</strong> Polizei <strong>110</strong>, Feuerwehr und Rettungsdienst <strong>112</strong>. Hajo kann nicht sofort helfen.</p>
 
     <label for="text">4. Ihre Nachricht <small>(Pflichtfeld)</small></label>
-    <textarea id="text" rows="6" maxlength="4000" placeholder="Was möchten Sie Hajo mitteilen?" aria-describedby="textCount"></textarea>
-    <p id="textCount" class="counter">0 von 4000 Zeichen</p>
+    <textarea id="text" rows="6" maxlength="1500" placeholder="Was möchten Sie Hajo mitteilen?" aria-describedby="textCount"></textarea>
+    <p id="textCount" class="counter">0 von 1500 Zeichen</p>
     <p id="error" class="error" role="alert" hidden>Bitte schreiben Sie zuerst Ihre Nachricht.</p>
 
     <label for="name">5. Name <small>(freiwillig)</small></label>
     <input id="name" type="text" autocomplete="name" maxlength="120" placeholder="z. B. Maria Muster">
 
-    <label for="ort">6. Ortsteil / Straße <small>(freiwillig)</small></label>
-    <input id="ort" type="text" maxlength="120" placeholder="z. B. Holzhausen, Hauptstraße">
+    <label for="ortsteil">6. Ortsteil <small>(freiwillig)</small></label>
+    <select id="ortsteil" aria-describedby="ortsteilTipp"><option value="">Bitte wählen …</option></select>
+    <p id="ortsteilTipp" class="hint">Holzhausen oder Oesdorf? Bitte „Bad Pyrmont (Kernstadt)“ wählen.</p>
+    <p id="ortAnders" class="hint" role="status" hidden>Liegt der Ort nicht in Bad Pyrmont? Dann ist vielleicht eine andere Stadt oder Gemeinde zuständig. Sie können trotzdem senden.</p>
+
+    <label for="ort">7. Straße oder genauer Ort <small>(freiwillig)</small></label>
+    <input id="ort" type="text" maxlength="120" placeholder="z. B. Hauptstraße, beim Spielplatz">
 
     <div class="extras">
       <button id="locBtn" type="button" class="mid secondary">📍 Standort anhängen</button>
@@ -99,21 +125,38 @@
       <li id="afterPhoto">Foto? In WhatsApp mit 📎 anhängen.</li>
       <li>Hajo Bönke bekommt Ihre Nachricht direkt. Bitte haben Sie etwas Geduld mit der Antwort.</li>
     </ol>
-    <button id="clear" type="button" class="big secondary">Fertig – Formular leeren</button>
+    <p class="hint">Das Formular ist schon leer für die nächste Nachricht.</p>
+    <button id="clear" type="button" class="big secondary">Fertig</button>
     <button id="again" type="button" class="mid secondary">WhatsApp nicht aufgegangen? Nochmal öffnen</button>
     <button id="keep" type="button" class="link">Text behalten und ändern</button>
   </section>
 
+  <details class="privacy" id="zustaendig">
+    <summary>ℹ️ Wer ist zuständig? – kurz erklärt</summary>
+    <p>Sie können Hajo alles aus Bad Pyrmont schreiben. Auch aus allen Ortsteilen.</p>
+    <p>Aber: Manche Dinge macht nicht die Stadt Bad Pyrmont. Zum Beispiel:</p>
+    <ul>
+      <li><strong>Kreis-Straßen und Müll-Abfuhr:</strong> Landkreis Hameln-Pyrmont.</li>
+      <li><strong>Bundes-Straßen und Landes-Straßen:</strong> das Land Niedersachsen (Straßen-Bau-Behörde).</li>
+      <li><strong>Kurpark:</strong> das Staatsbad Pyrmont. Es gehört dem Land Niedersachsen.</li>
+      <li><strong>Polizei:</strong> das Land Niedersachsen.</li>
+      <li><strong>Andere Orte</strong> wie Lügde, Aerzen, Emmerthal oder Hameln: die Stadt oder Gemeinde dort.</li>
+    </ul>
+    <p>Sie können trotzdem schreiben. Hajo kann Ihnen dann sagen, wer vermutlich hilft.</p>
+    <p><strong>Im Notfall sofort anrufen:</strong> Polizei <strong>110</strong>, Feuerwehr und Rettungsdienst <strong>112</strong>.</p>
+  </details>
+
   <details class="privacy">
     <summary>🔒 Datenschutz – kurz erklärt</summary>
     <ul>
-      <li>Die App speichert Ihr Anliegen <strong>nicht</strong>. Es gibt keinen Server.</li>
+      <li>Die App speichert Ihr Anliegen <strong>nicht</strong>. Es gibt keinen Server. Nur bis Sie den Browser-Tab schließen, merkt sich die Seite die letzte Nachricht (für „Nochmal öffnen“).</li>
       <li>Ihre Nachricht geht nur über WhatsApp an Hajo – erst wenn Sie in WhatsApp auf Senden tippen.</li>
-      <li>Name, Ort, Standort und Foto sind freiwillig.</li>
+      <li>Ortsteil, Name, Ort, Standort und Foto sind freiwillig.</li>
       <li>Kein Tracking, keine Werbung, keine Verbindungen zu fremden Servern.</li>
       <li>Für WhatsApp gelten die Datenschutz-Regeln von WhatsApp (Meta).</li>
     </ul>
   </details>
+  <button id="helferLink" type="button" class="link small">Einstellungen (für Helfer)</button>
 </section>
 
 <!-- ================= Einstellungen ================= -->
@@ -141,14 +184,14 @@
   <label class="consent"><input id="kiEnabled" type="checkbox" checked><span>KI einschalten</span></label>
   <label for="kiKey">Gemini-Schlüssel <small>(kostenlos, nur auf diesem Gerät)</small></label>
   <input id="kiKey" type="password" autocomplete="off" spellcheck="false" placeholder="Schlüssel hier einfügen">
-  <p class="hint">Die App fragt zuerst das klügste kostenlose Modell. Ist dessen Tageslimit voll, wechselt sie automatisch zum nächsten.</p>
-  <label for="kiModel">1. Modell <small>(klügstes – nur ändern, wenn nötig)</small></label>
-  <input id="kiModel" type="text" autocomplete="off" spellcheck="false" maxlength="80" list="kiModels" placeholder="gemini-3.8-flash">
-  <label for="kiFallback">2. Modell <small>(Ersatz, auch für Google-Suche)</small></label>
-  <input id="kiFallback" type="text" autocomplete="off" spellcheck="false" maxlength="80" list="kiModels" placeholder="gemini-2.5-flash">
+  <p class="hint">Die App fragt zuerst gemini-2.5-flash (zuverlässig, mit Google-Suche). Ist es überlastet oder das Limit voll, nimmt sie sofort das nächste Modell. Nach höchstens etwa 1,5 Minuten gibt es eine Antwort oder eine Vorlage.</p>
+  <label for="kiModel">1. Modell <small>(Standard: gemini-2.5-flash – nur ändern, wenn nötig)</small></label>
+  <input id="kiModel" type="text" autocomplete="off" spellcheck="false" maxlength="80" list="kiModels" placeholder="gemini-2.5-flash">
+  <label for="kiFallback">2. Modell <small>(Ersatz: gemini-3.8-flash)</small></label>
+  <input id="kiFallback" type="text" autocomplete="off" spellcheck="false" maxlength="80" list="kiModels" placeholder="gemini-3.8-flash">
   <label for="kiLite">3. Modell <small>(schnell, großes Limit)</small></label>
   <input id="kiLite" type="text" autocomplete="off" spellcheck="false" maxlength="80" list="kiModels" placeholder="gemini-3.5-flash-lite">
-  <datalist id="kiModels"><option value="gemini-3.8-flash"><option value="gemini-3.7-flash"><option value="gemini-3.6-flash"><option value="gemini-2.5-flash"><option value="gemini-3.5-flash-lite"><option value="gemini-3.1-pro-preview"></datalist>
+  <datalist id="kiModels"><option value="gemini-2.5-flash"><option value="gemini-3.8-flash"><option value="gemini-3.7-flash"><option value="gemini-3.6-flash"><option value="gemini-3.5-flash-lite"><option value="gemini-3.1-pro-preview"></datalist>
   <button id="kiModelsReset" type="button" class="link">Modelle auf Standard zurücksetzen</button>
   <div class="row">
     <button id="saveKi" type="button" class="mid">KI speichern</button>
@@ -181,11 +224,17 @@
       <li>Kein Tracking, keine Werbung, keine Cookies.</li>
     </ul>
   </details>
-  <p class="version">Bürger-Anliegen Bad Pyrmont · Version <span id="ver">2.3.0</span><br>Kostenlos · ohne Werbung · ohne Tracking</p>
+  <p class="version">Bürger-Anliegen Bad Pyrmont · Version <span id="ver">2.4.0</span><br>Kostenlos · ohne Werbung · ohne Tracking</p>
 </section>
 
 <!-- ================= Helfer: Übersicht ================= -->
 <section id="s-helfer" class="screen" hidden>
+  <div id="helferIntro" class="intro" hidden>
+    <p><strong>Was ist der Helfer-Bereich?</strong></p>
+    <p>Hier ordnen Helferinnen und Helfer von Hajo Bönke die Nachrichten aus WhatsApp: Anliegen, Ideen und Termine.</p>
+    <p>Alles bleibt nur auf diesem Gerät. Es gibt kein Konto. Bitte ab und zu „Sichern &amp; Export“ benutzen.</p>
+    <button id="helferIntroOk" type="button" class="mid secondary">Verstanden</button>
+  </div>
   <p class="info">Alle Daten bleiben nur auf diesem Gerät. Machen Sie ab und zu eine Sicherung.</p>
   <p id="storeWarn" class="error" hidden>Achtung: Dieser Browser kann nichts speichern. Bitte eine Sicherung machen, bevor Sie die Seite schließen.</p>
   <div id="bkRemind" class="warn" hidden>
@@ -208,9 +257,10 @@
 <section id="s-anliegen" class="screen" hidden>
   <button id="newAnliegen" type="button" class="big">+ Neues Anliegen</button>
   <label for="fSuche">Suchen</label>
-  <input id="fSuche" type="search" maxlength="80" autocomplete="off" placeholder="z. B. Laterne, Oesdorf">
+  <input id="fSuche" type="search" maxlength="80" autocomplete="off" placeholder="z. B. Laterne, Hagen">
   <div class="row filters">
     <label class="inl">Thema<select id="fThema"><option value="">Alle Themen</option></select></label>
+    <label class="inl">Ortsteil<select id="fOrtsteil"><option value="">Alle Ortsteile</option></select></label>
     <label class="inl">Status<select id="fStatus"><option value="">Alle</option></select></label>
   </div>
   <p id="anliegenCount" class="hint" role="status"></p>
@@ -237,7 +287,9 @@
   <label for="aeText">Was ist das Anliegen? <small>(Pflichtfeld)</small></label>
   <textarea id="aeText" rows="5" maxlength="4000"></textarea>
   <p id="aeError" class="error" role="alert" hidden>Bitte beschreiben Sie das Anliegen.</p>
-  <label for="aeOrt">Ort <small>(freiwillig)</small></label>
+  <label for="aeOrtsteil">Ortsteil</label>
+  <select id="aeOrtsteil"></select>
+  <label for="aeOrt">Straße oder genauer Ort <small>(freiwillig)</small></label>
   <input id="aeOrt" type="text" maxlength="120" placeholder="z. B. Oesdorf, Schulstraße">
   <label for="aeKontakt">Kontakt <small>(freiwillig, nur mit Einverständnis)</small></label>
   <input id="aeKontakt" type="text" maxlength="120" placeholder="z. B. Name, Telefon">
@@ -309,6 +361,7 @@
   <label class="consent"><input id="teDone" type="checkbox"><span>Alles erledigt</span></label>
 
   <button id="teSave" type="button" class="big">Speichern</button>
+  <p id="teSaved" class="ok" role="status" hidden>✓ Gespeichert. Jetzt in den Kalender eintragen?</p>
   <button id="teCal" type="button" class="mid secondary" hidden>📅 In Kalender eintragen</button>
   <button id="teDelete" type="button" class="mid danger" hidden>Löschen</button>
 </section>
@@ -326,7 +379,7 @@
   <p class="hint">Mit diesem Link oder QR-Code öffnen Bürgerinnen und Bürger direkt „Anliegen senden“. Der QR-Code wird auf dem Gerät erstellt – ohne fremden Dienst.</p>
   <label class="consent"><input id="linkNum" type="checkbox"><span>Hajos WhatsApp-Nummer in den Link schreiben<br><small>Dann kommt jede Nachricht direkt bei Hajo an.</small></span></label>
   <p id="linkNumInfo" class="hint"></p>
-  <div class="qrbox"><div id="qrCode" class="qr" aria-label="QR-Code zum Bürger-Link"></div></div>
+  <div class="qrbox"><div id="qrCode" class="qr" role="img" aria-label="QR-Code zum Bürger-Link"></div></div>
   <p class="linkout"><span id="linkText"></span></p>
   <button id="linkCopy" type="button" class="big">Link kopieren</button>
   <button id="linkShare" type="button" class="mid wa">Link per WhatsApp weitergeben</button>
@@ -337,12 +390,18 @@
 <!-- ================= Helfer: Sichern ================= -->
 <section id="s-backup" class="screen" hidden>
   <h2>Sicherung</h2>
-  <p class="hint">Speichert alle Anliegen, Ideen und Termine in einer Datei.</p>
+  <p class="hint">Speichert alle Anliegen, Ideen und Termine in einer Datei. Vor dem Laden einer Sicherung zeigt die App, was ersetzt wird, und legt eine Sicherheitskopie an.</p>
   <button id="bkExport" type="button" class="big">Sicherung speichern</button>
   <button id="bkImportBtn" type="button" class="mid secondary">Sicherung laden</button>
   <input id="bkFile" type="file" accept=".json,application/json" hidden>
   <p id="bkStatus" class="ok" role="status" hidden></p>
   <p id="bkError" class="error" role="alert" hidden></p>
+  <div id="bkSafety" class="info" hidden>
+    <p><strong>Sicherheitskopie</strong> <small>(automatisch vor „Sicherung laden“ und „Alles löschen“)</small></p>
+    <p id="bkSafetyText"></p>
+    <button id="bkSafetyRestore" type="button" class="mid secondary">Sicherheitskopie wiederherstellen</button>
+    <button id="bkSafetyDownload" type="button" class="mid secondary">Sicherheitskopie als Datei speichern</button>
+  </div>
   <h2>Tabelle</h2>
   <p class="hint">Alle Anliegen als Tabelle (CSV) – öffnet in Excel oder LibreOffice.</p>
   <button id="csvExport" type="button" class="mid secondary">Tabelle speichern (CSV)</button>
@@ -356,6 +415,7 @@
   <h2>Anliegen-Bericht</h2>
   <div class="row filters">
     <label class="inl">Thema<select id="pdfThema"></select></label>
+    <label class="inl">Ortsteil<select id="pdfOrtsteil"></select></label>
     <label class="inl">Status<select id="pdfStatus"></select></label>
   </div>
   <label class="consent"><input id="pdfKontakt" type="checkbox"><span>Kontaktdaten mit drucken</span></label>
@@ -404,10 +464,27 @@
     <p class="hint">Die Google-Suche ist kostenlos nur bei manchen Modellen. Die App wählt dafür automatisch ein passendes. Klappt keine Suche, antwortet die KI ohne Suche (mit Hinweis).</p>
     <p id="kiInputErr" class="error" role="alert" hidden>Bitte zuerst etwas eintragen.</p>
     <button id="kiRun" type="button" class="big">✨ KI fragen</button>
+    <div id="kiPreview" class="preview" hidden>
+      <h2 id="kiPrevTitle" tabindex="-1">Vorschau: Das geht an Google</h2>
+      <p class="hint">Bitte kurz prüfen. <mark>[Name]</mark> usw. sind entfernte Angaben. Erst mit „An Google senden“ geht der Text weg.</p>
+      <div id="kiPrevView" class="summary prevview" tabindex="0" role="region" aria-label="Text, der an Google geht (Vorschau)"></div>
+      <div id="kiPrevRemovedBox">
+        <h3>Entfernt (bleibt auf dem Gerät)</h3>
+        <ul id="kiPrevRemoved" class="removed"></ul>
+      </div>
+      <p id="kiPrevNone" class="hint" hidden>Die App hat keine Namen, Nummern oder Adressen gefunden.</p>
+      <details class="privacy"><summary>Text ändern (vor dem Senden)</summary>
+        <label for="kiPrevText">Text, der an Google geht</label>
+        <textarea id="kiPrevText" rows="8"></textarea>
+        <p class="hint">Ihre Änderungen prüft die App vor dem Senden noch einmal auf Namen und Nummern.</p>
+      </details>
+      <button id="kiPrevSend" type="button" class="big">An Google senden</button>
+      <button id="kiPrevCancel" type="button" class="mid secondary">Abbrechen – nichts senden</button>
+    </div>
     <div id="kiBusy" class="info busy" role="status" aria-live="polite" hidden>
       <span class="spinner" aria-hidden="true"></span>
       <strong>KI denkt gründlich nach …</strong><br>
-      <span id="kiBusyDetail">Das kann bis zu 1–2 Minuten dauern. Sie können die App weiter benutzen.</span>
+      <span id="kiBusyDetail">Höchstens etwa 1,5 Minuten. Sie können die App weiter benutzen.</span>
     </div>
     <p id="kiError" class="error" role="alert" hidden></p>
   </div>
@@ -453,11 +530,8 @@
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
 <script src="config.js"></script>
-<script src="vendor/jspdf.umd.min.js"></script>
-<script src="vendor/qrcode.js"></script>
+<!-- 2.4.0: jsPDF, pdf.js, QR-Code (qr.js) und PDF-Schrift werden erst bei Bedarf geladen (app.js: ensurePdf/ensureQr) -->
 <script src="logic.js"></script>
-<script src="qr.js"></script>
-<script src="pdf.js"></script>
 <script src="ki.js"></script>
 <script src="app.js"></script>
 </body>

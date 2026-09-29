@@ -1,5 +1,6 @@
-/* Bürger-Anliegen 2.3.0 – PDF-Ausgabe mit gebündeltem jsPDF (MIT, vendor/, kein CDN). Offline.
-   2.3.0: Block 'qr' zeichnet einen QR-Code als Vektor (qr.js / vendor/qrcode.js, lokal). */
+/* Bürger-Anliegen 2.4.0 – PDF-Ausgabe mit gebündeltem jsPDF (MIT, vendor/, kein CDN). Offline.
+   2.3.0: Block 'qr' zeichnet einen QR-Code als Vektor (qr.js / vendor/qrcode.js, lokal).
+   2.4.0: Unicode-Schrift (vendor/pdffont.js, DejaVu Sans Auszug) für ş, ı, ł, Kyrillisch …; ohne Schrift: Umschrift (ş → s). */
 (function (root) {
   'use strict';
   var BA = root.BA;
@@ -9,8 +10,20 @@
   function render(docSpec) {
     var JsPDF = (root.jspdf && root.jspdf.jsPDF) || root.jsPDF;
     if (!JsPDF) throw new Error('PDF-Bibliothek fehlt');
-    var S = BA.pdfSafe;
     var pdf = new JsPDF({ unit: 'mm', format: 'a4', compress: true });
+    var FONT = 'helvetica', F = root.BA_PDF_FONT;
+    if (F && F.regular && F.bold && docSpec.unicode !== false) {
+      try {
+        pdf.addFileToVFS('BADejaVu.ttf', F.regular); pdf.addFont('BADejaVu.ttf', 'BADejaVu', 'normal');
+        pdf.addFileToVFS('BADejaVu-Bold.ttf', F.bold); pdf.addFont('BADejaVu-Bold.ttf', 'BADejaVu', 'bold');
+        pdf.setFont('BADejaVu', 'normal');
+        FONT = 'BADejaVu';
+      } catch (e) { FONT = 'helvetica'; }
+    }
+    var UNI = FONT !== 'helvetica';
+    var S = function (s) { return BA.pdfSafe(s, UNI); };
+    var setFont0 = pdf.setFont.bind(pdf);
+    pdf.setFont = function (name, style) { return setFont0(name === 'helvetica' ? FONT : name, style); };
     pdf.setProperties({ title: S(docSpec.title), subject: S(docSpec.subtitle), creator: 'Bürger-Anliegen Bad Pyrmont ' + BA.VERSION, author: 'Bürger-Anliegen Bad Pyrmont' });
     var W = 210, H = 297, M = 20, TW = W - 2 * M, TOP = 34, BOTTOM = H - 20;
     var y = TOP;
@@ -89,6 +102,7 @@
       pdf.text('Bürger-Anliegen Bad Pyrmont' + (docSpec.sample ? ' · Beispieldaten' : ''), M, H - 9);
       pdf.text('Seite ' + i + ' von ' + n, W - M, H - 9, { align: 'right' });
     }
+    render.lastFont = FONT;
     return new Uint8Array(pdf.output('arraybuffer'));
   }
   function toBase64(u8) {
