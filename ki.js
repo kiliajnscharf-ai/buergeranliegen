@@ -1,4 +1,4 @@
-/* Bürger-Anliegen 2.4.0 – KI-Ablauf (Gemini). Ohne DOM, in Node testbar.
+/* Bürger-Anliegen 2.4.1 – KI-Ablauf (Gemini). Ohne DOM, in Node testbar.
    Netz nur über die übergebene "transport"-Funktion und nur zu generativelanguage.googleapis.com.
    Modell-Kette (Standard, 2.4.0): gemini-2.5-flash (bestätigt, mit Google-Suche) -> gemini-3.8-flash -> gemini-3.5-flash-lite -> Offline-Vorlage.
    Jedes Modell: maximales Nachdenken (thinkingLevel "high" bzw. thinkingBudget 24576), viel Platz für die Antwort.

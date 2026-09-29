@@ -1,4 +1,4 @@
-/* Bürger-Anliegen 2.4.0 – PDF-Ausgabe mit gebündeltem jsPDF (MIT, vendor/, kein CDN). Offline.
+/* Bürger-Anliegen 2.4.1 – PDF-Ausgabe mit gebündeltem jsPDF (MIT, vendor/, kein CDN). Offline.
    2.3.0: Block 'qr' zeichnet einen QR-Code als Vektor (qr.js / vendor/qrcode.js, lokal).
    2.4.0: Unicode-Schrift (vendor/pdffont.js, DejaVu Sans Auszug) für ş, ı, ł, Kyrillisch …; ohne Schrift: Umschrift (ş → s). */
 (function (root) {

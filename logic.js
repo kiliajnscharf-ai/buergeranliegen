@@ -1,9 +1,9 @@
-/* Bürger-Anliegen Bad Pyrmont 2.4.0 – reine Logik (ohne DOM), auch in Node testbar.
+/* Bürger-Anliegen Bad Pyrmont 2.4.1 – reine Logik (ohne DOM), auch in Node testbar.
    Gleiche Regeln wie AnliegenLogic.java (Android). Keine Netzwerk-Zugriffe. */
 (function (root) {
   'use strict';
 
-  var VERSION = '2.4.0';
+  var VERSION = '2.4.1';
   // Öffentliche Web-Adresse (für den Bürger-Link / QR-Code). Keine Nummer, kein Schlüssel.
   var PUBLIC_URL = 'https://kiliajnscharf-ai.github.io/buergeranliegen/';
   var HEADER = 'Anliegen für Hajo Bönke (SPD Bad Pyrmont)';
@@ -891,8 +891,9 @@
   var GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models/';
   var KI_TASKS = ['zusammenfassen', 'antwort', 'text', 'recherche'];
   var TEXT_ARTEN = ['Social-Media-Post', 'Flyer-Text', 'Pressemitteilung', 'Rede-Stichpunkte'];
-  var SYSTEM_KI = 'Du bist erfahrener Büroleiter und Pressereferent für Hajo Bönke, ' +
-    'SPD-Kommunalpolitiker in Bad Pyrmont (Niedersachsen). ' +
+  // 2.4.1: Hajo Bönke hat die Stichwahl am 27.09.2026 gewonnen – „gewählter Bürgermeister“, aber noch nicht im Amt.
+  var SYSTEM_KI = 'Du bist erfahrener Büroleiter und Pressereferent für Hajo Bönke (SPD) in Bad Pyrmont (Niedersachsen). ' +
+    'Hajo Bönke hat am 27.09.2026 die Stichwahl gewonnen: Er ist gewählter Bürgermeister von Bad Pyrmont, aber noch nicht im Amt. ' +
     'Schreibe auf Deutsch, klar, respektvoll und in einfacher Sprache mit kurzen Sätzen. ' +
     'Erfinde keine Fakten: nur Fakten aus der Anfrage oder aus der Suche, keine erfundenen Zahlen, Namen, Termine, Zitate oder Versprechen. ' +
     'Unsicherheiten klar markieren (z. B. „unsicher:“ oder Platzhalter wie [Datum]). ' +
@@ -904,7 +905,7 @@
     'Bundes- und Landesstraßen bei der Niedersächsischen Landesbehörde für Straßenbau und Verkehr (Land); Polizei beim Land Niedersachsen; ' +
     'der Kurpark beim Niedersächsischen Staatsbad Pyrmont (Gesellschaft des Landes); Orte außerhalb (z. B. Lügde in NRW, Aerzen, Emmerthal, Hameln) bei der jeweiligen Kommune. ' +
     'Wenn ein Anliegen wahrscheinlich dort liegt, sage das klar („vermutlich zuständig: …, bitte prüfen“) und verspreche kein Handeln der Stadt. Bei Gefahr: Notruf 110 oder 112. ' +
-    'Hajo Bönke nicht als Bürgermeister oder als Stadtverwaltung darstellen. ' +
+    'Nenne ihn höchstens „gewählter Bürgermeister“ (nie ohne „gewählter“). Schreibe nie, dass er schon im Amt ist, und stelle ihn nicht als Stadtverwaltung dar. ' +
     'Keine Zusagen ohne Grundlage: nicht versprechen, dass etwas repariert, erledigt oder entschieden wird, und nicht zusagen, dass sich jemand meldet oder kümmert. ' +
     'Nur reinen Text schreiben, kein Markdown: keine Sternchen (* oder **), keine Rauten (#) als Überschrift, keine Tabellen, keine Links in Klammern. ' +
     'Aufzählungen nur mit „-“ am Zeilenanfang. Hashtags nur in Social-Media-Posts.';
@@ -963,7 +964,7 @@
     if (task === 'zusammenfassen') {
       var offen = filterAnliegen(data.anliegen.filter(function (a) { return a.status !== 'Erledigt'; }), {});
       anon = anliegenForKi(offen);
-      user = 'Rolle: Büroleiter für Hajo Bönke (SPD Bad Pyrmont).\n' +
+      user = 'Rolle: Büroleiter für Hajo Bönke (SPD), gewählter Bürgermeister von Bad Pyrmont (noch nicht im Amt).\n' +
         'Hier sind ' + offen.length + ' offene Bürger-Anliegen.\n' +
         'Aufgabe (nur aus den vorliegenden Texten, nichts erfinden):\n' +
         '1. Kurze Gesamtschau (3 bis 5 Sätze).\n' +
@@ -977,7 +978,8 @@
       var a = o.anliegen || {};
       anon = withOrtsteile(anonymizeText('Thema: ' + (a.thema || '') + '\nOrtsteil: ' + otMarker(0) + '\nOrt: ' + cleanLine(a.ort || '') +
         '\nStatus: ' + (a.status || '') + '\nAnliegen: ' + cleanText(a.text || ''), a.kontakt ? [a.kontakt] : []), [ortsteilText(a.ortsteil)]);
-      user = 'Rolle: freundlicher Büro-Mitarbeiter für Hajo Bönke.\n' +
+      user = 'Rolle: freundlicher Büro-Mitarbeiter für Hajo Bönke (SPD), gewählter Bürgermeister von Bad Pyrmont (noch nicht im Amt).\n' +
+        'Hajo Bönke höchstens „gewählter Bürgermeister“ nennen. Nicht so schreiben, als wäre er schon im Amt oder als spräche die Stadt.\n' +
         'Schreibe einen respektvollen Antwort-Entwurf an die Bürgerin/den Bürger.\n' +
         'Struktur: Dank → kurze Wiedergabe des Anliegens (ohne neue Fakten) → was als Nächstes passiert ' +
         '(ehrlich, ohne Versprechen) → ggf. eine Rückfrage → Bitte um Geduld.\n' +
@@ -995,11 +997,12 @@
         'Pressemitteilung': 'eine sachliche Pressemitteilung: Überschrift, „Bad Pyrmont, [Datum]“, W-Fragen, Fakten nur aus den Stichworten; Zitate nur als Platzhalter [Zitat Hajo Bönke]',
         'Rede-Stichpunkte': 'Stichpunkte für eine kurze Rede: Einstieg, 3 bis 5 Kernpunkte mit Nutzen für Bürgerinnen und Bürger, Schluss mit Einladung zum Gespräch'
       }[art];
-      user = 'Rolle: Pressereferent für Hajo Bönke, SPD Bad Pyrmont.\nSchreibe ' + how + '.\n' +
+      user = 'Rolle: Pressereferent für Hajo Bönke (SPD Bad Pyrmont), gewählter Bürgermeister von Bad Pyrmont.\nSchreibe ' + how + '.\n' +
+        'Er ist noch nicht im Amt: höchstens „gewählter Bürgermeister“ schreiben, nie so, als wäre er schon im Amt.\n' +
         'Nur belegte Inhalte aus den Stichworten; Unsicherheiten markieren.\nThema und Stichworte:\n' + (anon.text || '[Thema]');
     } else if (task === 'recherche') {
       anon = anonymizeText(cleanText(o.input || ''));
-      user = 'Rolle: Recherche-Assistent für den Kommunalpolitiker Hajo Bönke (Bad Pyrmont, Niedersachsen; ganzes Stadtgebiet mit allen Ortsteilen).\n' +
+      user = 'Rolle: Recherche-Assistent für Hajo Bönke (SPD), gewählter Bürgermeister von Bad Pyrmont (noch nicht im Amt; Niedersachsen; ganzes Stadtgebiet mit allen Ortsteilen).\n' +
         'Nutze die verfügbare Internetsuche. Liefere 3 bis 6 konkrete Ideen/Beispiele aus anderen deutschen Kommunen.\n' +
         'Pro Punkt: Was? Warum hilft das? Wo gibt es das schon? Eine Quelle nennen, wenn vorhanden.\n' +
         'Nur überprüfbare Angaben. Wenn unsicher oder keine Quelle: ausdrücklich „unsicher“ schreiben.\n' +
@@ -1302,14 +1305,15 @@
     var kontakt = 'Ihr Anliegen oder Ihre Idee? Schreiben Sie Hajo Bönke per WhatsApp' + (o.number ? ': +' + o.number : '.');
     B.push({ t: 'box', v: kontakt });
     if (o.link) { B.push({ t: 'qr', v: o.link, size: 45 }); B.push({ t: 'meta', v: 'QR-Code scannen: ' + o.link }); }
-    return pdfDoc('Infoblatt', 'Hajo Bönke · SPD Bad Pyrmont', B, o);
+    return pdfDoc('Infoblatt', 'Hajo Bönke · gewählter Bürgermeister von Bad Pyrmont · SPD', B, o);
   }
   /** Aushang / Handzettel mit QR-Code zum Bürger-Link. */
   function pdfAushang(link, o) {
     o = o || {};
     var B = [
       { t: 'big', v: 'Ihr Anliegen für Bad Pyrmont' },
-      { t: 'lead', v: 'Schreiben Sie Hajo Bönke (SPD) direkt per WhatsApp: ein Problem, eine Frage oder eine gute Idee.' },
+      { t: 'lead', v: 'Schreiben Sie Hajo Bönke direkt per WhatsApp: ein Problem, eine Frage oder eine gute Idee.' },
+      { t: 'lead', v: 'Hajo Bönke (SPD) ist gewählter Bürgermeister von Bad Pyrmont.' },
       { t: 'lead', v: 'Für das ganze Stadtgebiet: Kernstadt und alle Ortsteile.' },
       { t: 'qr', v: link, size: 85 },
       { t: 'h2', v: 'So geht es' },
@@ -1320,7 +1324,7 @@
       { t: 'box', v: 'Kostenlos · nur WhatsApp nötig · ohne Anmeldung · nichts wird gespeichert' },
       { t: 'meta', v: 'Link: ' + link }
     ];
-    return pdfDoc('Aushang: Anliegen an Hajo Bönke', 'Hajo Bönke · SPD Bad Pyrmont', B, o);
+    return pdfDoc('Aushang: Anliegen an Hajo Bönke', 'Hajo Bönke · gewählter Bürgermeister von Bad Pyrmont · SPD', B, o);
   }
   function pdfKiErgebnis(title, text, sources, o) {
     o = o || {};

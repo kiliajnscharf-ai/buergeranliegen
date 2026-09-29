@@ -1,6 +1,6 @@
 # Bürger-Anliegen Bad Pyrmont
 
-Einfache Browser-App für Bürgerinnen und Bürger in Bad Pyrmont, um Anliegen an den SPD-Ortsverein zu richten.
+Einfache Browser-App für Bürgerinnen und Bürger in Bad Pyrmont, um Anliegen an Hajo Bönke (SPD), gewählter Bürgermeister von Bad Pyrmont, zu richten.
 
 ## Was die App macht
 
@@ -20,4 +20,6 @@ Einfache Browser-App für Bürgerinnen und Bürger in Bad Pyrmont, um Anliegen a
 
 Einfach die veröffentlichte Seite im Browser öffnen (auch auf dem iPhone). Keine Installation nötig.
 
-Version 2.4.0 (öffentliche Web-Version, ohne eingebauten API-Schlüssel).
+NEU in 2.4.1: Hajo Bönke ist gewählter Bürgermeister von Bad Pyrmont. Das steht jetzt in der App.
+
+Version 2.4.1 (öffentliche Web-Version, ohne eingebauten API-Schlüssel).

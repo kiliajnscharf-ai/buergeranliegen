@@ -1165,7 +1165,7 @@
     });
     $('linkCopy').addEventListener('click', function () { copyText(currentCitizenLink()); });
     $('linkShare').addEventListener('click', function () {
-      sendWA('Haben Sie ein Anliegen für Bad Pyrmont? Schreiben Sie Hajo Bönke (SPD) ganz einfach per WhatsApp: ' + currentCitizenLink(), false, true);
+      sendWA('Haben Sie ein Anliegen für Bad Pyrmont? Schreiben Sie Hajo Bönke (SPD), gewählter Bürgermeister von Bad Pyrmont, ganz einfach per WhatsApp: ' + currentCitizenLink(), false, true);
     });
     $('linkOpen').addEventListener('click', function () { openUrl(currentCitizenLink()); });
     $('linkPdf').addEventListener('click', function () { makePdfAndSave(BA.pdfAushang(currentCitizenLink()), 'aushang'); });
